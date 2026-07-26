@@ -1,7 +1,7 @@
 {
-  "version": "1.2.0",
-  "notes": "New: generic Phone Mockup template with photo upload (drop your own photo into a device frame). New image field type for templates.",
-  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.2.0.exe",
-  "sha256": "d18c322b091cb3ebfd7299c93460989df42c7b5a2b182637623c1755df5e7b96",
+  "version": "1.2.1",
+  "notes": "Fix: gallery clutter from duplicated templates (now deletable) and drag-to-reposition ignoring the current zoom level.",
+  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.2.1.exe",
+  "sha256": "3c49ebb76e417886b5b3018f6314f6923373d9d983b8dcd0834ff69e482ea72b",
   "mandatory": false
 }

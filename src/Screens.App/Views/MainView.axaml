@@ -75,10 +75,15 @@
                 <DataTemplate x:DataType="models:TemplateManifest">
                   <Border Classes="card" Margin="0,0,0,8" Padding="10"
                           PointerPressed="OnTemplateTilePressed" Tag="{Binding}">
-                    <StackPanel Spacing="4">
-                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                      <TextBlock Text="{Binding Category}" Classes="muted"/>
-                    </StackPanel>
+                    <Grid ColumnDefinitions="*,Auto">
+                      <StackPanel Grid.Column="0" Spacing="4">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding Category}" Classes="muted"/>
+                      </StackPanel>
+                      <Button Grid.Column="1" Content="✕" Classes="icon" IsVisible="{Binding IsCustom}"
+                              Command="{Binding $parent[ItemsControl].((vm:MainViewModel)DataContext).DeleteTemplateCommand}"
+                              CommandParameter="{Binding}" ToolTip.Tip="Delete this duplicated template"/>
+                    </Grid>
                   </Border>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>

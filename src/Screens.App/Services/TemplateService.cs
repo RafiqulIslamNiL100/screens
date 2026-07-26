@@ -59,6 +59,7 @@ public sealed class TemplateService
                 }
 
                 manifest.SourceDirectory = directory;
+                manifest.IsCustom = directory == _settings.TemplatesDirectory;
                 result.Add(manifest);
             }
             catch (JsonException ex)

@@ -444,6 +444,23 @@ public partial class MainViewModel : ViewModelBase
         ShowToast = true;
     }
 
+    [RelayCommand]
+    private void DeleteTemplate(TemplateManifest? template)
+    {
+        if (template is null || !template.IsCustom || template.SourceDirectory is null)
+            return;
+
+        var jsonPath = Path.Combine(template.SourceDirectory, $"{template.Id}.json");
+        var imagePath = Path.Combine(template.SourceDirectory, template.Image);
+        if (File.Exists(jsonPath)) File.Delete(jsonPath);
+        if (File.Exists(imagePath)) File.Delete(imagePath);
+
+        var wasSelected = SelectedTemplate?.Id == template.Id;
+        LoadTemplates(wasSelected ? null : SelectedTemplate?.Id);
+        ToastMessage = $"Deleted \"{template.Name}\"";
+        ShowToast = true;
+    }
+
     /// <summary>Encodes and writes a rendered bitmap to disk — the View owns the save-file dialog, this owns the actual encode.</summary>
     public void WriteExportFile(SkiaSharp.SKBitmap bitmap, string path, ExportFormat format) => _render.Export(bitmap, path, format);
 

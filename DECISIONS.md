@@ -80,5 +80,12 @@ This needed a real feature the app didn't have yet (image upload into a placehol
 
 Known limitation: the photo is clipped to a plain rectangle, not the screen art's rounded corners, so at extreme zoom the very corner pixels of the screen show a sliver of the bezel art peeking past the photo. `FieldBox` has no corner-radius concept; adding one generically for every field type was out of scope for what's a minor cosmetic edge case.
 
+## v1.2.1: gallery clutter + drag-scale zoom fix (user reported "looks messy")
+Two real bugs found on review, not cosmetic guesswork:
+
+**No way to delete a duplicated template.** `DuplicateTemplate` has always written its clone permanently to `%APPDATA%\Screens\Templates`, but there was never a Delete affordance — every duplicate made while testing accumulates in the gallery forever ("Employee of the Month Award (Copy)", "(Copy) (Copy)", …), which is exactly the kind of clutter that reads as "messy." Added `TemplateManifest.IsCustom` (set by `TemplateService` when a manifest loads from the custom templates directory rather than the bundled one) and a `DeleteTemplateCommand` that removes the JSON+PNG pair and reloads the list; a small "✕" button now shows on gallery cards only when `IsCustom` is true, so bundled templates can never be deleted.
+
+**Drag-to-reposition ignored zoom.** `OnFieldDragStart` computed `_dragScale` from the drag overlay's parent `Bounds.Width` — but that overlay lives inside a `LayoutTransformControl` (added in the v1.1.1 zoom rework), whose `Bounds` stay in pre-transform, canvas-pixel space regardless of the actual on-screen zoom. That made `_dragScale` always evaluate to `1.0`, so dragging a field at any zoom other than 100% moved it at the wrong rate relative to the pointer. Fixed by reading `MainViewModel.EffectiveZoom` directly instead of trying to infer it from layout bounds.
+
 ## Out of scope (v1) — see spec §15
 Batch/CSV export, template designer UI, image upload into placeholders, cloud sync. Multi-select templates and seasonal template packs from the v1.1.0 batch above also remain out of scope, for the reasons given there. Everything else originally deferred (drag-to-reposition, multi-language UI) shipped in v1.1.0.

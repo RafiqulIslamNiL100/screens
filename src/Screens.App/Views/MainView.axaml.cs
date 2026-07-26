@@ -199,12 +199,10 @@ public partial class MainView : UserControl
 
         _draggingField = field;
         _dragLastPointerPos = e.GetPosition(control.Parent as Visual ?? control);
-        // The overlay Canvas sits inside a Viewbox that scales canvas-pixel
-        // units to on-screen pixels; dividing pointer-space deltas by that
-        // scale converts them back to canvas-pixel deltas MoveField expects.
-        _dragScale = control.Parent is Visual parent && parent.Bounds.Width > 0 && Vm?.SelectedTemplate is { } t
-            ? parent.Bounds.Width / t.Canvas.Width
-            : 1.0;
+        // The overlay Canvas is inside a LayoutTransformControl whose Bounds stay in
+        // pre-transform (canvas-pixel) space, so it can't be used to recover the
+        // on-screen scale. Use EffectiveZoom directly instead.
+        _dragScale = Vm?.EffectiveZoom > 0 ? Vm.EffectiveZoom : 1.0;
         e.Pointer.Capture(control);
     }
 

@@ -13,6 +13,10 @@ public sealed class TemplateManifest
     [JsonPropertyName("fields")] public List<TemplateField> Fields { get; set; } = new();
 
     [JsonIgnore] public string? SourceDirectory { get; set; }
+
+    /// <summary>True for templates saved under %APPDATA%\Screens\Templates (e.g. duplicates the
+    /// user made) — these show a Delete affordance in the gallery; bundled templates never do.</summary>
+    [JsonIgnore] public bool IsCustom { get; set; }
 }
 
 public sealed class CanvasSize
