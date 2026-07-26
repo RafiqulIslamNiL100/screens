@@ -34,6 +34,15 @@ RequestExecutionLevel user
 
 Section "Screens (required)" SEC_MAIN
   SectionIn RO
+
+  ; If a previous Screens.exe is still running, its files are locked and
+  ; overwriting them below fails with "Error opening file for writing".
+  ; Close it first (best-effort; silent /S must never block on this).
+  DetailPrint "Closing any running instance of Screens..."
+  nsExec::ExecToLog 'taskkill /IM Screens.exe /F'
+  Pop $0
+  Sleep 500
+
   SetOutPath "$INSTDIR"
 
   ; Overwrite an existing install in place — silent /S is fully non-interactive.

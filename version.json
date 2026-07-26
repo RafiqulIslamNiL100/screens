@@ -2,6 +2,6 @@
   "version": "1.0.1",
   "notes": "Time-limited license keys (duration set at generation, expiry tracked per activation). Admin dashboard has no login.",
   "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.0.1.exe",
-  "sha256": "6ae514a54f472b87e06e21e51c827de2b5404cf0028fb949b0de023835e738bc",
+  "sha256": "710f0ddb906726e8f476201435ad16c6d5575f23bf9130723b7e03b88fe48120",
   "mandatory": false
 }
