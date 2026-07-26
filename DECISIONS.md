@@ -38,6 +38,9 @@ The app's screen flow is the original spec's: Sign up/Sign in (any email + passw
 ## Time-limited license keys
 `license_keys` has `duration_days` (set at generation time in `admin.html`: 7/30/90/180/365 days, a custom day count, or left null for a lifetime key) and `expires_at` (computed by `redeem_key` as `redeemed_at + duration_days`, so the clock starts on activation, not on generation). `LicenseService.RefreshAsync` treats a key whose `expires_at` has passed as inactive (surfaced as `Status = "expired"`) even though its `status` column still reads `'active'` server-side — expiry is time-based, not a manual revoke. `admin.html`'s key table and Users list both compute the same "Expired" badge client-side from `expires_at`.
 
+## GoTrue requires both `apikey` and `Authorization` headers
+`AuthService`'s unauthenticated calls (signup, signin, refresh) were only sending the `apikey` header, not `Authorization: Bearer <token>`. Supabase's API gateway rejects that combination with a generic 401 that carried no matchable text, so it fell through to a useless "Something went wrong" message — reported by the user as sign-up failing outright. Fixed by always setting `Authorization: Bearer <anon key>` by default (GoTrue accepts the anon key here for unauthenticated calls), which `ParseAuthResponse` then overwrites with the real session token once one exists, and which `SignOutAsync` resets back to the anon key rather than clearing to null. Also widened `FriendlyError`'s fallback to include the actual status code and response body (truncated) instead of a bare "try again," since a second silent-failure mode elsewhere would otherwise be just as hard to diagnose from a screenshot.
+
 ## Icon set
 Icons are hand-authored `Avalonia.Media.Geometry` path data (stroke-only, 1.5px weight, 2px corner radius) rather than an icon font or SVG asset pipeline, to avoid pulling in an SVG renderer dependency.
 

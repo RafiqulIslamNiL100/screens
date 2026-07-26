@@ -40,6 +40,12 @@ public sealed class AuthService
         {
             _http.BaseAddress = new Uri(_config.SupabaseUrl.TrimEnd('/') + "/auth/v1/");
             _http.DefaultRequestHeaders.Add("apikey", _config.SupabaseAnonKey);
+            // Supabase's gateway rejects requests with only `apikey` and no
+            // Authorization header (401, generic body) — for unauthenticated
+            // calls (signup/signin/refresh) that Authorization is just the
+            // anon key. ParseAuthResponse overwrites this with the real
+            // session token once one exists.
+            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _config.SupabaseAnonKey);
         }
     }
 
@@ -83,7 +89,9 @@ public sealed class AuthService
     public async Task SignOutAsync()
     {
         CurrentSession = null;
-        _http.DefaultRequestHeaders.Authorization = null;
+        // Reset to the anon key, not null — subsequent signup/signin calls
+        // still need an Authorization header (see constructor comment).
+        _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _config.SupabaseAnonKey);
         await _settings.ClearSessionAsync();
     }
 
@@ -121,10 +129,14 @@ public sealed class AuthService
             return "Incorrect email or password.";
         if (body.Contains("Email not confirmed", StringComparison.OrdinalIgnoreCase))
             return "Please confirm your email address before signing in.";
+        if (body.Contains("Password should be", StringComparison.OrdinalIgnoreCase))
+            return "Password doesn't meet the project's requirements (check length/strength).";
         if (statusCode == "0" || body.Length == 0)
             return "Could not reach the server. Check your internet connection.";
-        return "Something went wrong. Please try again.";
+        return $"Something went wrong ({statusCode}). {Truncate(body, 200)}";
     }
+
+    private static string Truncate(string s, int max) => s.Length <= max ? s : s[..max] + "…";
 
     internal HttpClient Http => _http;
 
