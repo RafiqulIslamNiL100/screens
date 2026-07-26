@@ -1,7 +1,7 @@
 {
-  "version": "1.1.0",
-  "notes": "Big feature update: English/Chinese UI, drag-to-reposition with grid snap, QR code fields, PNG/JPG/PDF export + presets, clipboard export, watermark, autosave drafts, recent templates, template search + duplicate, command palette (Ctrl+K), system tray quick-export, license countdown/renewal, and usage stats in admin.html.",
-  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.1.0.exe",
-  "sha256": "ce11390d26984982c308bcde0331eaaaadd40095ccbc346bccc95b91fe67dc89",
+  "version": "1.1.1",
+  "notes": "Fixed: app now actually restarts after installing an update (the auto-relaunch never fired before). Zoom is now flexible (10%-400%, +/- buttons, Ctrl+scroll, click-to-fit) instead of a fit/100% toggle.",
+  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.1.1.exe",
+  "sha256": "b24c6804781787a23614ae1903500902254a24fb336424b92d2e96c227e779d9",
   "mandatory": false
 }

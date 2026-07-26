@@ -36,6 +36,10 @@ public partial class App : Avalonia.Application
             var appSettings = settings.Load();
             ApplyTheme(appSettings.Theme);
             mainVm.ThemeChanged += (_, theme) => ApplyTheme(theme);
+            // The update helper .cmd is waiting on this process to exit
+            // before it silently installs and relaunches us — without this,
+            // "restart with the new version" never actually happens.
+            mainVm.ExitForUpdateRequested += (_, _) => desktop.Shutdown();
 
             var window = new MainWindow { DataContext = shellVm };
             desktop.MainWindow = window;

@@ -32,8 +32,41 @@ public partial class MainView : UserControl
             {
                 vm.ExportRequested += OnExportRequested;
                 vm.ClipboardExportRequested += OnClipboardExportRequested;
+                vm.PropertyChanged += (_, args) =>
+                {
+                    if (args.PropertyName == nameof(MainViewModel.SelectedTemplate))
+                        RecomputeFitScale();
+                };
             }
         };
+
+        var viewport = this.FindControl<Border>("CanvasViewport");
+        if (viewport is not null)
+            viewport.SizeChanged += (_, _) => RecomputeFitScale();
+    }
+
+    /// <summary>"Fit" tracks whatever the current canvas viewport size is, recomputed whenever
+    /// the window resizes or a different (differently-sized) template is selected.</summary>
+    private void RecomputeFitScale()
+    {
+        var viewport = this.FindControl<Border>("CanvasViewport");
+        if (viewport is null || Vm?.SelectedTemplate is not { } template || template.Canvas.Width <= 0 || template.Canvas.Height <= 0)
+            return;
+
+        const double margin = 48; // matches the LayoutTransformControl's Margin="24" on each side
+        var availWidth = Math.Max(1, viewport.Bounds.Width - margin);
+        var availHeight = Math.Max(1, viewport.Bounds.Height - margin);
+        var scale = Math.Min(availWidth / template.Canvas.Width, availHeight / template.Canvas.Height);
+        Vm.SetFitScale(scale);
+    }
+
+    private void OnCanvasWheelChanged(object? sender, PointerWheelEventArgs e)
+    {
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && Vm is { } vm)
+        {
+            vm.ZoomByWheel(e.Delta.Y);
+            e.Handled = true;
+        }
     }
 
     private void OnTemplateTilePressed(object? sender, PointerPressedEventArgs e)

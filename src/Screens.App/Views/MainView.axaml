@@ -2,7 +2,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Screens.App.ViewModels"
              xmlns:models="using:Screens.App.Models"
-             xmlns:conv="using:Screens.App.Converters"
              x:Class="Screens.App.Views.MainView"
              x:DataType="vm:MainViewModel">
 
@@ -15,19 +14,32 @@
 
       <!-- Update banner: small, dismissible, non-modal -->
       <Border Classes="updateBanner" DockPanel.Dock="Top" IsVisible="{Binding ShowUpdateBanner}">
-        <Grid ColumnDefinitions="*,Auto,Auto,Auto">
-          <TextBlock Grid.Column="0" Text="{Binding UpdateBannerText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-          <Button Grid.Column="1" Content="Update now" Command="{Binding InstallUpdateCommand}" Classes="secondary" Margin="8,0"/>
-          <Button Grid.Column="2" Content="Later" Command="{Binding DismissUpdateBannerCommand}" Classes="secondary" Margin="0,0,8,0"/>
-          <Button Grid.Column="3" Content="✕" Command="{Binding DismissUpdateBannerCommand}" Classes="icon"/>
-        </Grid>
+        <StackPanel Spacing="4">
+          <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+            <TextBlock Grid.Column="0" Text="{Binding UpdateBannerText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" IsVisible="{Binding !IsInstallingUpdate}"/>
+            <TextBlock Grid.Column="0" Text="Downloading and installing — Screens will restart automatically…" VerticalAlignment="Center" IsVisible="{Binding IsInstallingUpdate}"/>
+            <Button Grid.Column="1" Content="Update now" Command="{Binding InstallUpdateCommand}" Classes="secondary" Margin="8,0" IsEnabled="{Binding !IsInstallingUpdate}"/>
+            <Button Grid.Column="2" Content="Later" Command="{Binding DismissUpdateBannerCommand}" Classes="secondary" Margin="0,0,8,0" IsEnabled="{Binding !IsInstallingUpdate}"/>
+            <Button Grid.Column="3" Content="✕" Command="{Binding DismissUpdateBannerCommand}" Classes="icon" IsEnabled="{Binding !IsInstallingUpdate}"/>
+          </Grid>
+          <TextBlock Text="{Binding InstallUpdateError}" Foreground="{DynamicResource BrushDanger}" TextWrapping="Wrap"
+                      IsVisible="{Binding InstallUpdateError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+        </StackPanel>
       </Border>
 
       <!-- Top toolbar -->
       <Border DockPanel.Dock="Top" Padding="16,10" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,0,0,1">
         <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto">
           <TextBlock Grid.Column="0" Text="Screens" FontWeight="Bold" FontSize="18" VerticalAlignment="Center"/>
-          <Button Grid.Column="2" Content="{Binding ZoomToggleLabel}" Command="{Binding ToggleZoomCommand}" Classes="secondary" Margin="0,0,8,0"/>
+
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2" Margin="0,0,8,0" VerticalAlignment="Center">
+            <Button Content="−" Classes="icon" Command="{Binding ZoomOutCommand}" ToolTip.Tip="Zoom out (Ctrl+scroll)"/>
+            <Button Content="{Binding ZoomPercentText}" Classes="secondary" Command="{Binding ZoomToFitActionCommand}"
+                    ToolTip.Tip="Click to fit the window" MinWidth="52"/>
+            <Button Content="+" Classes="icon" Command="{Binding ZoomInCommand}" ToolTip.Tip="Zoom in (Ctrl+scroll)"/>
+            <Button Content="100%" Classes="secondary" Command="{Binding ZoomResetCommand}" ToolTip.Tip="Zoom to 100%"/>
+          </StackPanel>
+
           <Button Grid.Column="3" Content="Copy" Command="{Binding ExportToClipboardCommand}" Classes="secondary" Margin="0,0,8,0"
                   ToolTip.Tip="Copy the current export to the clipboard"/>
           <Button Grid.Column="4" Content="All formats" Command="{Binding ExportAllFormatsCommand}" Classes="secondary" Margin="0,0,8,0"
@@ -82,13 +94,18 @@
         </ScrollViewer>
 
         <!-- Canvas preview, with a session-only drag-to-reposition overlay
-             aligned in the same coordinate space as the template (a Viewbox
-             wrapping both the image and the overlay keeps them in sync at
-             any zoom level without separate scale math). -->
-        <Border Grid.Column="1" Background="{DynamicResource BrushSurfaceElevated}" Margin="0" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1,0">
+             aligned in the same coordinate space as the template. A
+             LayoutTransformControl (not a plain RenderTransform) scales both
+             the image and the overlay together and keeps ScrollViewer's
+             scrollable extent correct at any zoom level, unlike a bare
+             ScaleTransform. -->
+        <Border Grid.Column="1" Name="CanvasViewport" Background="{DynamicResource BrushSurfaceElevated}" Margin="0" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1,0"
+                PointerWheelChanged="OnCanvasWheelChanged">
           <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-            <Viewbox Stretch="{Binding ZoomToFit, Converter={x:Static conv:BoolToStretchConverter.Instance}}" Margin="24"
-                     IsVisible="{Binding SelectedTemplate, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <LayoutTransformControl Margin="24" IsVisible="{Binding SelectedTemplate, Converter={x:Static ObjectConverters.IsNotNull}}">
+              <LayoutTransformControl.LayoutTransform>
+                <ScaleTransform ScaleX="{Binding EffectiveZoom}" ScaleY="{Binding EffectiveZoom}"/>
+              </LayoutTransformControl.LayoutTransform>
               <Panel Width="{Binding SelectedTemplate.Canvas.Width}" Height="{Binding SelectedTemplate.Canvas.Height}">
                 <Image x:Name="PreviewImageControl" Source="{Binding PreviewImage}"
                        Width="{Binding SelectedTemplate.Canvas.Width}" Height="{Binding SelectedTemplate.Canvas.Height}"/>
@@ -107,7 +124,7 @@
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
               </Panel>
-            </Viewbox>
+            </LayoutTransformControl>
           </ScrollViewer>
         </Border>
 

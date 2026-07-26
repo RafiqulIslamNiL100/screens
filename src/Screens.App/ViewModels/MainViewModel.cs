@@ -30,7 +30,9 @@ public partial class MainViewModel : ViewModelBase
 
     [ObservableProperty] private TemplateManifest? _selectedTemplate;
     [ObservableProperty] private Bitmap? _previewImage;
-    [ObservableProperty] private bool _zoomToFit = true;
+    [ObservableProperty] private bool _isZoomToFit = true;
+    [ObservableProperty] private double _zoomLevel = 1.0;
+    [ObservableProperty] private double _fitScale = 1.0;
     [ObservableProperty] private string? _toastMessage;
     [ObservableProperty] private bool _showToast;
     [ObservableProperty] private string? _lastExportPath;
@@ -263,8 +265,65 @@ public partial class MainViewModel : ViewModelBase
             f.Clear();
     }
 
+    private const double MinZoom = 0.1;
+    private const double MaxZoom = 4.0;
+
+    public double EffectiveZoom => IsZoomToFit ? FitScale : ZoomLevel;
+    public string ZoomPercentText => IsZoomToFit ? "Fit" : $"{(int)Math.Round(ZoomLevel * 100)}%";
+
+    partial void OnIsZoomToFitChanged(bool value)
+    {
+        OnPropertyChanged(nameof(EffectiveZoom));
+        OnPropertyChanged(nameof(ZoomPercentText));
+    }
+
+    partial void OnZoomLevelChanged(double value)
+    {
+        OnPropertyChanged(nameof(EffectiveZoom));
+        OnPropertyChanged(nameof(ZoomPercentText));
+    }
+
+    /// <summary>Set by the View whenever the canvas viewport is resized, so "Fit" tracks the window.</summary>
+    public void SetFitScale(double scale)
+    {
+        if (scale <= 0)
+            return;
+        FitScale = scale;
+        if (IsZoomToFit)
+            OnPropertyChanged(nameof(EffectiveZoom));
+    }
+
     [RelayCommand]
-    private void ToggleZoom() => ZoomToFit = !ZoomToFit;
+    private void ZoomIn()
+    {
+        ZoomLevel = Math.Min(MaxZoom, EffectiveZoom * 1.25);
+        IsZoomToFit = false;
+    }
+
+    [RelayCommand]
+    private void ZoomOut()
+    {
+        ZoomLevel = Math.Max(MinZoom, EffectiveZoom * 0.8);
+        IsZoomToFit = false;
+    }
+
+    [RelayCommand]
+    private void ZoomToFitAction() => IsZoomToFit = true;
+
+    [RelayCommand]
+    private void ZoomReset()
+    {
+        ZoomLevel = 1.0;
+        IsZoomToFit = false;
+    }
+
+    /// <summary>Ctrl+scroll on the canvas — delta is the wheel's raw Y delta (positive = zoom in).</summary>
+    public void ZoomByWheel(double delta)
+    {
+        var factor = delta > 0 ? 1.1 : 1 / 1.1;
+        ZoomLevel = Math.Clamp(EffectiveZoom * factor, MinZoom, MaxZoom);
+        IsZoomToFit = false;
+    }
 
     [RelayCommand]
     private void Export() => ExportInternal(ExportFormat.Png);
@@ -401,13 +460,43 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     private void DismissUpdateBanner() => ShowUpdateBanner = false;
 
+    [ObservableProperty] private bool _isInstallingUpdate;
+    [ObservableProperty] private string? _installUpdateError;
+
+    public event EventHandler? ExitForUpdateRequested;
+
     [RelayCommand]
     private async Task InstallUpdateAsync()
     {
-        if (PendingUpdate is null)
+        if (PendingUpdate is null || IsInstallingUpdate)
             return;
-        await _update.DownloadAndInstallAsync(PendingUpdate);
-        // Caller (App shutdown) exits the process so the installer can overwrite files.
+
+        IsInstallingUpdate = true;
+        InstallUpdateError = null;
+        try
+        {
+            var (started, error) = await _update.DownloadAndInstallAsync(PendingUpdate);
+            if (!started)
+            {
+                InstallUpdateError = error ?? "Update failed for an unknown reason.";
+                IsInstallingUpdate = false;
+                return;
+            }
+
+            // The helper .cmd is now waiting on this process to exit before it
+            // runs the installer silently and relaunches Screens.exe — until
+            // we actually exit, that wait never ends and "restart with the
+            // new version" never happens. This is the one legitimate reason
+            // to close the app as a side effect of an in-app action (spec
+            // section 5's "no hiding/minimising" rule is about accidental
+            // side effects, not this deliberate, user-initiated handoff).
+            ExitForUpdateRequested?.Invoke(this, EventArgs.Empty);
+        }
+        catch (Exception ex)
+        {
+            InstallUpdateError = $"Update failed: {ex.Message}";
+            IsInstallingUpdate = false;
+        }
     }
 
     public async Task CheckForUpdatesOnStartupAsync()
@@ -464,7 +553,6 @@ public partial class MainViewModel : ViewModelBase
     public string ResetLabel => Loc.T("Main.Reset");
     public string ClearAllLabel => Loc.T("Main.ClearAll");
     public string ExportLabel => Loc.T("Main.Export");
-    public string ZoomToggleLabel => Loc.T("Main.ZoomToggle");
     public string SettingsLabel => Loc.T("Main.Settings");
     public string SearchPlaceholder => Loc.T("Main.SearchTemplates");
     public string DuplicateLabel => Loc.T("Main.Duplicate");
@@ -529,7 +617,10 @@ public partial class MainViewModel : ViewModelBase
         CommandPaletteItems.Add(new CommandPaletteItem("Export all formats (PNG/JPG/PDF)", () => ExportAllFormats()));
         CommandPaletteItems.Add(new CommandPaletteItem("Reset fields to defaults", () => ResetToDefaults()));
         CommandPaletteItems.Add(new CommandPaletteItem("Clear all fields", () => ClearAll()));
-        CommandPaletteItems.Add(new CommandPaletteItem("Toggle zoom", () => ToggleZoom()));
+        CommandPaletteItems.Add(new CommandPaletteItem("Zoom in", () => ZoomIn()));
+        CommandPaletteItems.Add(new CommandPaletteItem("Zoom out", () => ZoomOut()));
+        CommandPaletteItems.Add(new CommandPaletteItem("Zoom to fit", () => ZoomToFitAction()));
+        CommandPaletteItems.Add(new CommandPaletteItem("Zoom to 100%", () => ZoomReset()));
         CommandPaletteItems.Add(new CommandPaletteItem("Open settings", () => ShowSettings = true));
         CommandPaletteItems.Add(new CommandPaletteItem("Toggle theme (Light)", () => Theme = ThemePreference.Light));
         CommandPaletteItems.Add(new CommandPaletteItem("Toggle theme (Dark)", () => Theme = ThemePreference.Dark));
