@@ -121,16 +121,8 @@
 <div id="loginView">
   <div class="card" id="loginCard">
     <h1>Screens Admin</h1>
-    <p class="muted">Sign in with an admin account.</p>
+    <p class="muted">Connect to your Supabase project.</p>
     <div style="margin-top:16px;">
-      <label for="loginEmail">Email</label>
-      <input id="loginEmail" type="email" placeholder="admin@example.com">
-    </div>
-    <div style="margin-top:12px;">
-      <label for="loginPassword">Password</label>
-      <input id="loginPassword" type="password" placeholder="Password">
-    </div>
-    <div style="margin-top:12px;">
       <label for="supabaseUrl">Supabase Project URL</label>
       <input id="supabaseUrl" placeholder="https://YOUR-PROJECT.supabase.co">
     </div>
@@ -138,12 +130,13 @@
       <label for="supabaseAnonKey">Supabase Anon Key</label>
       <input id="supabaseAnonKey" placeholder="Anon (public) key">
     </div>
-    <button class="primary" id="loginBtn" style="margin-top:16px; width:100%;">Sign in</button>
+    <button class="primary" id="loginBtn" style="margin-top:16px; width:100%;">Continue</button>
     <div class="error" id="loginError"></div>
     <p class="muted" style="margin-top:12px;">
-      Project URL and anon key are saved locally in this browser only. Never paste the
-      service-role key here — this dashboard authenticates as an admin user and relies on
-      Row Level Security, per <code>db/schema.sql</code>.
+      No login required — the URL and anon key are all that gate this page, and both are
+      saved locally in this browser only. This means anyone with your anon key (it also
+      ships inside the desktop app) can generate, view, and revoke license keys. Never
+      paste the service-role key here.
     </p>
   </div>
 </div>
@@ -153,7 +146,7 @@
     <div class="brand"><div class="mark"></div>Screens Admin</div>
     <div style="display:flex; align-items:center; gap:12px;">
       <span class="muted" id="whoami"></span>
-      <button class="secondary" id="signOutBtn">Sign out</button>
+      <button class="secondary" id="signOutBtn">Disconnect</button>
     </div>
   </header>
 
@@ -248,7 +241,6 @@
   const LS_KEY = "screens_admin_supabase_anon_key";
 
   let supabase = null;
-  let currentUser = null;
   let allKeys = [];
   let confirmResolve = null;
 
@@ -412,46 +404,42 @@
     }
   }
 
-  // ---- Auth ------------------------------------------------------------
+  // ---- Connect (no login — see the warning on the connect card) ---------
   $("loginBtn").onclick = async () => {
     $("loginError").textContent = "";
     const url = $("supabaseUrl").value.trim();
     const anonKey = $("supabaseAnonKey").value.trim();
-    const email = $("loginEmail").value.trim();
-    const password = $("loginPassword").value;
 
-    if (!url || !anonKey || !email || !password) {
-      $("loginError").textContent = "All fields are required.";
+    if (!url || !anonKey) {
+      $("loginError").textContent = "Both fields are required.";
       return;
     }
 
     supabase = window.supabase.createClient(url, anonKey);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) { $("loginError").textContent = error.message; return; }
 
-    // Verify admin membership (RLS also enforces this server-side).
-    const { data: adminRow } = await supabase.from("admins").select("user_id").eq("user_id", data.user.id).maybeSingle();
-    if (!adminRow) {
-      $("loginError").textContent = "This account is not an admin.";
-      await supabase.auth.signOut();
+    // Sanity-check the connection before entering the dashboard.
+    const { error } = await supabase.from("license_keys").select("key").limit(1);
+    if (error) {
+      $("loginError").textContent = "Could not read license_keys: " + error.message +
+        ". Make sure db/schema.sql has been run and the anon role has been granted access.";
       return;
     }
 
     localStorage.setItem(LS_URL, url);
     localStorage.setItem(LS_KEY, anonKey);
-    currentUser = data.user;
     showApp();
   };
 
-  $("signOutBtn").onclick = async () => {
-    await supabase.auth.signOut();
+  $("signOutBtn").onclick = () => {
+    localStorage.removeItem(LS_URL);
+    localStorage.removeItem(LS_KEY);
     location.reload();
   };
 
   async function showApp() {
     $("loginView").style.display = "none";
     $("appView").style.display = "block";
-    $("whoami").textContent = currentUser.email;
+    $("whoami").textContent = new URL($("supabaseUrl").value.trim()).host;
     await loadKeys();
     await loadUsers();
   }
@@ -466,11 +454,12 @@
     return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
 
-  // Pre-fill saved project settings.
+  // Pre-fill (and auto-continue with) saved project settings.
   const savedUrl = localStorage.getItem(LS_URL);
   const savedKey = localStorage.getItem(LS_KEY);
   if (savedUrl) $("supabaseUrl").value = savedUrl;
   if (savedKey) $("supabaseAnonKey").value = savedKey;
+  if (savedUrl && savedKey) $("loginBtn").click();
 })();
 </script>
 

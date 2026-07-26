@@ -21,16 +21,19 @@ the Supabase dashboard** — everything else already works.
    (Authentication → Settings); either setting works with the app's sign-up
    flow.
 
-## 2. Make yourself an admin
+## 2. admin.html has no login (by request)
 
-1. Sign up once through the Screens app (or create the user directly under
-   **Authentication → Users** in the dashboard) using the email you want to
-   administer with.
-2. Copy that user's UUID from the Users table, then in the SQL editor:
-   ```sql
-   insert into public.admins (user_id) values ('<your-user-uuid>');
-   ```
-3. You can now sign in to `admin/admin.html` with that account.
+`admin.html` does **not** require a Supabase account or sign-in — it only
+asks for the project URL and anon key, and `schema.sql` grants the `anon`
+role full access to `license_keys` for that reason. There is no admin
+account to create.
+
+**Understand the tradeoff before relying on this**: the anon key is not a
+secret — it ships inside the desktop app and anyone can extract it — so
+anyone who has it can generate, view, and revoke every license key with no
+audit trail. See `DECISIONS.md` for the full explanation and how to revert
+to a real login-gated flow (the `admins` table and `is_admin()` helper are
+still in `schema.sql`, just unused by `admin.html` right now).
 
 ## Credentials already wired in
 
@@ -60,11 +63,9 @@ complete step 1, not a bug.
 2. Double-click to open it in a browser.
 3. On first run, paste in:
    - Project URL: `https://gyedrlhxyzdjjanvbmvw.supabase.co`
-   - Anon key: see `appsettings.json` (same value, safe to reuse — it's the
-     public key)
-   - Your admin email/password (from step 2 above)
-   These are saved in `localStorage` in that browser only — nothing is sent
-   anywhere except your own Supabase project.
+   - Anon key: see `appsettings.json` (same value)
+   These are saved in `localStorage` in that browser only and it connects
+   immediately — no account needed (see §2 above for what that means).
 4. Generate keys, revoke/restore them, and see which users have redeemed
    one.
 

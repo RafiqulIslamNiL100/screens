@@ -31,6 +31,9 @@ whose GPU/driver can't satisfy the hardware path (Wine, some RDP sessions,
 older integrated GPUs) without penalizing normal hardware — there is nothing
 GPU-bound about this UI.
 
+## admin.html has no login gate (explicit user request, insecure by design)
+`admin.html` originally required Supabase Auth sign-in plus an `admins` table membership check before granting access. At the user's explicit request (after being warned of the tradeoff and confirming they wanted it anyway), that gate was removed: the dashboard now only asks for the Supabase project URL and anon key, and `db/schema.sql` grants the unauthenticated `anon` role full `select/insert/update/delete` on `license_keys` via a permissive RLS policy. Practical effect: **the anon key is now a master key for license management** — anyone who has it (including anyone who extracts it from the desktop app's `appsettings.json`, since it ships in the .exe) can generate, view, and revoke every license key, with no audit trail of who did it. The `admins` table and `is_admin()` helper are left in place unused by `admin.html` so a stricter flow can be restored later by dropping the anon policy in `schema.sql` and reverting `admin.html` to the Supabase Auth flow.
+
 ## Icon set
 Icons are hand-authored `Avalonia.Media.Geometry` path data (stroke-only, 1.5px weight, 2px corner radius) rather than an icon font or SVG asset pipeline, to avoid pulling in an SVG renderer dependency.
 

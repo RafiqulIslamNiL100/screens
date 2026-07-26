@@ -54,6 +54,28 @@ create policy "admin full access to license_keys"
 -- own row's status.
 
 -- ---------------------------------------------------------------------
+-- ANON ADMIN ACCESS (opt-in, insecure by design)
+-- ---------------------------------------------------------------------
+-- admin.html was changed to skip Supabase Auth entirely and talk to
+-- license_keys using only the project URL + anon key, so it needs the
+-- unauthenticated `anon` role to have full access to this table.
+--
+-- This means: anyone who has your anon key (which also ships inside the
+-- Screens desktop app and is not a secret) can generate, view, and revoke
+-- every license key. There is no login gate on that access anymore. Only
+-- keep this policy if you're comfortable with that — remove it and restore
+-- an authenticated admin flow in admin.html if you ever need real access
+-- control on key management.
+create policy "anon full access to license_keys (admin.html, no login)"
+  on public.license_keys
+  for all
+  to anon
+  using (true)
+  with check (true);
+
+grant select, insert, update, delete on public.license_keys to anon;
+
+-- ---------------------------------------------------------------------
 -- admins policies
 -- ---------------------------------------------------------------------
 
