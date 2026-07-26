@@ -1,0 +1,190 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!--
+    Every input control is explicitly styled here. A default-Fluent TextBox
+    renders as a plain white box regardless of app theme, so this file has
+    zero exceptions (spec section 8). Every color lookup below resolves
+    through the ThemeDictionaries in Theme.axaml, so light/dark/system all
+    work without a restart.
+  -->
+
+  <Style Selector="TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
+  </Style>
+
+  <Style Selector="TextBlock.secondary">
+    <Setter Property="Foreground" Value="{DynamicResource BrushTextSecondary}"/>
+  </Style>
+
+  <Style Selector="TextBlock.muted">
+    <Setter Property="Foreground" Value="{DynamicResource BrushTextMuted}"/>
+    <Setter Property="FontSize" Value="12"/>
+  </Style>
+
+  <!-- TextBox (includes activation-key / PIN fields, search boxes) -->
+  <Style Selector="TextBox">
+    <Setter Property="Background" Value="{DynamicResource BrushSurfaceElevated}"/>
+    <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="8"/>
+    <Setter Property="Padding" Value="12,8"/>
+    <Setter Property="CaretBrush" Value="{DynamicResource BrushPrimary}"/>
+    <Setter Property="SelectionBrush" Value="{DynamicResource BrushPrimaryLight}"/>
+    <Setter Property="SelectionForegroundBrush" Value="{DynamicResource BrushSurface}"/>
+  </Style>
+  <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimaryLight}"/>
+  </Style>
+  <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}"/>
+    <Setter Property="BorderThickness" Value="2"/>
+  </Style>
+  <Style Selector="TextBox /template/ TextBlock#PART_Watermark">
+    <Setter Property="Foreground" Value="{DynamicResource BrushTextMuted}"/>
+  </Style>
+
+  <!-- Buttons -->
+  <Style Selector="Button.primary">
+    <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+    <Setter Property="Foreground" Value="White"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="8"/>
+    <Setter Property="Padding" Value="16,10"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
+  </Style>
+  <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BrushPrimaryDark}"/>
+  </Style>
+  <Style Selector="Button.primary:disabled /template/ ContentPresenter">
+    <Setter Property="Opacity" Value="0.5"/>
+  </Style>
+
+  <Style Selector="Button.secondary">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="8"/>
+    <Setter Property="Padding" Value="16,10"/>
+  </Style>
+  <Style Selector="Button.secondary:pointerover /template/ ContentPresenter">
+    <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimaryLight}"/>
+  </Style>
+
+  <!-- Icon button: Border+Path must set Background=Transparent so the full
+       padded hit area is clickable, not just the stroke pixels (spec §8). -->
+  <Style Selector="Button.icon">
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="CornerRadius" Value="6"/>
+    <Setter Property="Width" Value="36"/>
+    <Setter Property="Height" Value="36"/>
+  </Style>
+  <Style Selector="Button.icon:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BrushSurfaceElevated2}"/>
+  </Style>
+  <Style Selector="Button.icon Path">
+    <Setter Property="Stroke" Value="{DynamicResource BrushTextPrimary}"/>
+    <Setter Property="StrokeThickness" Value="1.5"/>
+  </Style>
+
+  <!-- CheckBox -->
+  <Style Selector="CheckBox">
+    <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
+  </Style>
+  <Style Selector="CheckBox /template/ Border#NormalRectangle">
+    <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+    <Setter Property="Background" Value="{DynamicResource BrushSurfaceElevated}"/>
+  </Style>
+  <Style Selector="CheckBox:checked /template/ Border#NormalRectangle">
+    <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}"/>
+    <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+  </Style>
+
+  <!-- ToggleSwitch (theme picker, checkboxes elsewhere reuse the same accent) -->
+  <Style Selector="ToggleSwitch /template/ Border#OuterBorder">
+    <Setter Property="Background" Value="{DynamicResource BrushBorder}"/>
+  </Style>
+  <Style Selector="ToggleSwitch:checked /template/ Border#OuterBorder">
+    <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+  </Style>
+  <Style Selector="ToggleSwitch /template/ Ellipse#SwitchKnob">
+    <Setter Property="Fill" Value="White"/>
+  </Style>
+
+  <!-- Slider (font size, zoom) -->
+  <Style Selector="Slider">
+    <Setter Property="Foreground" Value="{DynamicResource BrushPrimary}"/>
+  </Style>
+  <Style Selector="Slider /template/ Thumb">
+    <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+  </Style>
+
+  <!-- ComboBox -->
+  <Style Selector="ComboBox">
+    <Setter Property="Background" Value="{DynamicResource BrushSurfaceElevated}"/>
+    <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+    <Setter Property="CornerRadius" Value="8"/>
+  </Style>
+  <Style Selector="ComboBoxItem:selected /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource BrushPrimaryLight}"/>
+  </Style>
+
+  <!-- Right-click context menus must not inherit the Windows accent colour -->
+  <Style Selector="ContextMenu">
+    <Setter Property="Background" Value="{DynamicResource BrushSurfaceElevated}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+  </Style>
+  <Style Selector="MenuItem:selected /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource BrushPrimaryLight}"/>
+  </Style>
+  <Style Selector="MenuItem TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource BrushTextPrimary}"/>
+  </Style>
+
+  <!-- ScrollBar -->
+  <Style Selector="ScrollBar /template/ Border#TrackRect">
+    <Setter Property="Background" Value="Transparent"/>
+  </Style>
+  <Style Selector="ScrollBar Thumb">
+    <Setter Property="Background" Value="{DynamicResource BrushBorder}"/>
+  </Style>
+  <Style Selector="ScrollBar Thumb:pointerover">
+    <Setter Property="Background" Value="{DynamicResource BrushPrimaryLight}"/>
+  </Style>
+
+  <!-- Toast (non-blocking export confirmation) -->
+  <Style Selector="Border.toast">
+    <Setter Property="Background" Value="{DynamicResource BrushSurfaceElevated2}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="10"/>
+    <Setter Property="Padding" Value="16,12"/>
+  </Style>
+
+  <!-- Update banner: dismissible, non-modal -->
+  <Style Selector="Border.updateBanner">
+    <Setter Property="Background" Value="{DynamicResource BrushPrimary}"/>
+    <Setter Property="Padding" Value="16,10"/>
+  </Style>
+  <Style Selector="Border.updateBanner TextBlock">
+    <Setter Property="Foreground" Value="White"/>
+  </Style>
+
+  <!-- Card surface (template gallery tiles, panels) -->
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{DynamicResource BrushSurfaceElevated}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="CornerRadius" Value="10"/>
+  </Style>
+  <Style Selector="Border.card.selected">
+    <Setter Property="BorderBrush" Value="{DynamicResource BrushPrimary}"/>
+    <Setter Property="BorderThickness" Value="2"/>
+  </Style>
+
+</Styles>

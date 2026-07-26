@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Screens.App.ViewModels"
+             x:Class="Screens.App.Views.AuthView"
+             x:DataType="vm:AuthViewModel">
+
+  <Grid Background="{DynamicResource BrushSurface}">
+    <Border Classes="card" Width="380" Padding="32" HorizontalAlignment="Center" VerticalAlignment="Center">
+      <StackPanel Spacing="16">
+        <TextBlock Text="Screens" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+        <TextBlock Text="{Binding HeadingText}" Classes="secondary" HorizontalAlignment="Center"/>
+
+        <StackPanel Spacing="6">
+          <TextBlock Text="Email" Classes="muted"/>
+          <TextBox Text="{Binding Email, Mode=TwoWay}" Watermark="you@example.com"/>
+        </StackPanel>
+
+        <StackPanel Spacing="6">
+          <TextBlock Text="Password" Classes="muted"/>
+          <TextBox Text="{Binding Password, Mode=TwoWay}" PasswordChar="•" Watermark="At least 6 characters"/>
+        </StackPanel>
+
+        <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource BrushDanger}"
+                    IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                    TextWrapping="Wrap"/>
+
+        <Button Classes="primary" Content="{Binding SubmitText}" Command="{Binding SubmitCommand}"
+                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" IsEnabled="{Binding !IsBusy}"/>
+        <Button Classes="secondary" Content="{Binding ToggleText}" Command="{Binding ToggleModeCommand}"
+                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+      </StackPanel>
+    </Border>
+  </Grid>
+
+</UserControl>

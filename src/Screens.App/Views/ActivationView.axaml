@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Screens.App.ViewModels"
+             x:Class="Screens.App.Views.ActivationView"
+             x:DataType="vm:ActivationViewModel">
+
+  <Grid Background="{DynamicResource BrushSurface}">
+    <Border Classes="card" Width="420" Padding="32" HorizontalAlignment="Center" VerticalAlignment="Center">
+      <StackPanel Spacing="16">
+        <TextBlock Text="Activate Screens" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center"/>
+        <TextBlock Text="Enter the activation key you received after purchase." Classes="secondary" TextWrapping="Wrap" HorizontalAlignment="Center" TextAlignment="Center"/>
+
+        <TextBox Text="{Binding KeyInput, Mode=TwoWay}" Watermark="XXXX-XXXX-XXXX-XXXX"
+                  FontSize="20" FontFamily="Consolas,monospace" HorizontalContentAlignment="Center" MaxLength="19"/>
+
+        <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource BrushDanger}"
+                    IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                    TextWrapping="Wrap" HorizontalAlignment="Center"/>
+
+        <Button Classes="primary" Content="Activate" Command="{Binding ActivateCommand}"
+                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" IsEnabled="{Binding !IsBusy}"/>
+      </StackPanel>
+    </Border>
+  </Grid>
+
+</UserControl>

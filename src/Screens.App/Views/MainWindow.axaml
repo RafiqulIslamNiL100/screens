@@ -1,0 +1,39 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Screens.App.ViewModels"
+        xmlns:views="using:Screens.App.Views"
+        xmlns:conv="using:Screens.App.Converters"
+        x:Class="Screens.App.Views.MainWindow"
+        x:DataType="vm:ShellViewModel"
+        Title="Screens"
+        Width="1280" Height="800" MinWidth="960" MinHeight="640"
+        Background="{DynamicResource BrushSurface}"
+        WindowStartupLocation="CenterScreen">
+
+  <Window.Resources>
+    <conv:EnumEqualsConverter x:Key="EnumEquals"/>
+  </Window.Resources>
+
+  <Panel>
+    <views:AuthView DataContext="{Binding AuthViewModel}"
+                     IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).Screen, Converter={StaticResource EnumEquals}, ConverterParameter=Auth}"/>
+
+    <views:ActivationView DataContext="{Binding ActivationViewModel}"
+                           IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).Screen, Converter={StaticResource EnumEquals}, ConverterParameter=Activation}"/>
+
+    <views:MainView DataContext="{Binding MainViewModel}"
+                     IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).Screen, Converter={StaticResource EnumEquals}, ConverterParameter=Main}"/>
+
+    <Border IsVisible="{Binding Screen, Converter={StaticResource EnumEquals}, ConverterParameter=Splash}"
+            Background="{DynamicResource BrushSurface}">
+      <TextBlock Text="Screens" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="28" FontWeight="Bold"/>
+    </Border>
+
+    <Border IsVisible="{Binding ShowOfflineGraceBanner}"
+            VerticalAlignment="Top" HorizontalAlignment="Stretch"
+            Background="{DynamicResource BrushSurfaceElevated2}" Padding="12,6">
+      <TextBlock Text="Working offline — reconnect within 72 hours to keep your license active." Classes="secondary" HorizontalAlignment="Center"/>
+    </Border>
+  </Panel>
+
+</Window>

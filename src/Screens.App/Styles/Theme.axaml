@@ -1,0 +1,92 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!--
+    Palette is locked (spec section 8). ThemeDictionaries so both variants are
+    always present in every window's resource lookup chain — flat resources
+    overwritten in code do not reach windows created after the switch.
+  -->
+  <ResourceDictionary.ThemeDictionaries>
+
+    <ResourceDictionary x:Key="Dark">
+      <Color x:Key="ColorPrimary">#7C3AED</Color>
+      <Color x:Key="ColorPrimaryDark">#6D28D9</Color>
+      <Color x:Key="ColorPrimaryLight">#A78BFA</Color>
+      <Color x:Key="ColorSurface">#1A1028</Color>
+      <Color x:Key="ColorSurfaceElevated">#241A38</Color>
+      <Color x:Key="ColorSurfaceElevated2">#2E2247</Color>
+      <Color x:Key="ColorBorder">#3A2C57</Color>
+      <Color x:Key="ColorTextPrimary">#F5F3FA</Color>
+      <Color x:Key="ColorTextSecondary">#C7BEDD</Color>
+      <Color x:Key="ColorTextMuted">#9284B3</Color>
+      <Color x:Key="ColorDanger">#F87171</Color>
+      <Color x:Key="ColorSuccess">#4ADE80</Color>
+      <Color x:Key="ColorOverlay">#B31A1028</Color>
+
+      <SolidColorBrush x:Key="BrushPrimary" Color="{StaticResource ColorPrimary}"/>
+      <SolidColorBrush x:Key="BrushPrimaryDark" Color="{StaticResource ColorPrimaryDark}"/>
+      <SolidColorBrush x:Key="BrushPrimaryLight" Color="{StaticResource ColorPrimaryLight}"/>
+      <SolidColorBrush x:Key="BrushSurface" Color="{StaticResource ColorSurface}"/>
+      <SolidColorBrush x:Key="BrushSurfaceElevated" Color="{StaticResource ColorSurfaceElevated}"/>
+      <SolidColorBrush x:Key="BrushSurfaceElevated2" Color="{StaticResource ColorSurfaceElevated2}"/>
+      <SolidColorBrush x:Key="BrushBorder" Color="{StaticResource ColorBorder}"/>
+      <SolidColorBrush x:Key="BrushTextPrimary" Color="{StaticResource ColorTextPrimary}"/>
+      <SolidColorBrush x:Key="BrushTextSecondary" Color="{StaticResource ColorTextSecondary}"/>
+      <SolidColorBrush x:Key="BrushTextMuted" Color="{StaticResource ColorTextMuted}"/>
+      <SolidColorBrush x:Key="BrushDanger" Color="{StaticResource ColorDanger}"/>
+      <SolidColorBrush x:Key="BrushSuccess" Color="{StaticResource ColorSuccess}"/>
+      <SolidColorBrush x:Key="BrushOverlay" Color="{StaticResource ColorOverlay}"/>
+
+      <!-- Neutralise the Windows accent colour everywhere native-flavoured
+           controls read it (spec section 8): context menus, toggles,
+           checkboxes, sliders, selection highlights. -->
+      <Color x:Key="SystemAccentColor">#7C3AED</Color>
+      <Color x:Key="SystemAccentColorLight1">#8B4EF0</Color>
+      <Color x:Key="SystemAccentColorLight2">#A78BFA</Color>
+      <Color x:Key="SystemAccentColorLight3">#C4B5FD</Color>
+      <Color x:Key="SystemAccentColorDark1">#6D28D9</Color>
+      <Color x:Key="SystemAccentColorDark2">#5B21B6</Color>
+      <Color x:Key="SystemAccentColorDark3">#4C1D95</Color>
+    </ResourceDictionary>
+
+    <ResourceDictionary x:Key="Light">
+      <Color x:Key="ColorPrimary">#7C3AED</Color>
+      <Color x:Key="ColorPrimaryDark">#6D28D9</Color>
+      <Color x:Key="ColorPrimaryLight">#A78BFA</Color>
+      <Color x:Key="ColorSurface">#F8F6FC</Color>
+      <Color x:Key="ColorSurfaceElevated">#FFFFFF</Color>
+      <Color x:Key="ColorSurfaceElevated2">#EFE9F8</Color>
+      <Color x:Key="ColorBorder">#DCD2F0</Color>
+      <Color x:Key="ColorTextPrimary">#1A1028</Color>
+      <Color x:Key="ColorTextSecondary">#4B3E68</Color>
+      <Color x:Key="ColorTextMuted">#786A9B</Color>
+      <Color x:Key="ColorDanger">#DC2626</Color>
+      <Color x:Key="ColorSuccess">#16A34A</Color>
+      <Color x:Key="ColorOverlay">#B3F8F6FC</Color>
+
+      <SolidColorBrush x:Key="BrushPrimary" Color="{StaticResource ColorPrimary}"/>
+      <SolidColorBrush x:Key="BrushPrimaryDark" Color="{StaticResource ColorPrimaryDark}"/>
+      <SolidColorBrush x:Key="BrushPrimaryLight" Color="{StaticResource ColorPrimaryLight}"/>
+      <SolidColorBrush x:Key="BrushSurface" Color="{StaticResource ColorSurface}"/>
+      <SolidColorBrush x:Key="BrushSurfaceElevated" Color="{StaticResource ColorSurfaceElevated}"/>
+      <SolidColorBrush x:Key="BrushSurfaceElevated2" Color="{StaticResource ColorSurfaceElevated2}"/>
+      <SolidColorBrush x:Key="BrushBorder" Color="{StaticResource ColorBorder}"/>
+      <SolidColorBrush x:Key="BrushTextPrimary" Color="{StaticResource ColorTextPrimary}"/>
+      <SolidColorBrush x:Key="BrushTextSecondary" Color="{StaticResource ColorTextSecondary}"/>
+      <SolidColorBrush x:Key="BrushTextMuted" Color="{StaticResource ColorTextMuted}"/>
+      <SolidColorBrush x:Key="BrushDanger" Color="{StaticResource ColorDanger}"/>
+      <SolidColorBrush x:Key="BrushSuccess" Color="{StaticResource ColorSuccess}"/>
+      <SolidColorBrush x:Key="BrushOverlay" Color="{StaticResource ColorOverlay}"/>
+
+      <Color x:Key="SystemAccentColor">#7C3AED</Color>
+      <Color x:Key="SystemAccentColorLight1">#8B4EF0</Color>
+      <Color x:Key="SystemAccentColorLight2">#A78BFA</Color>
+      <Color x:Key="SystemAccentColorLight3">#C4B5FD</Color>
+      <Color x:Key="SystemAccentColorDark1">#6D28D9</Color>
+      <Color x:Key="SystemAccentColorDark2">#5B21B6</Color>
+      <Color x:Key="SystemAccentColorDark3">#4C1D95</Color>
+    </ResourceDictionary>
+
+  </ResourceDictionary.ThemeDictionaries>
+
+</ResourceDictionary>

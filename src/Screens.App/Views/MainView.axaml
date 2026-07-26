@@ -1,0 +1,139 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Screens.App.ViewModels"
+             xmlns:models="using:Screens.App.Models"
+             xmlns:conv="using:Screens.App.Converters"
+             x:Class="Screens.App.Views.MainView"
+             x:DataType="vm:MainViewModel">
+
+  <Panel Background="{DynamicResource BrushSurface}">
+    <DockPanel LastChildFill="True">
+
+      <!-- Update banner: small, dismissible, non-modal -->
+      <Border Classes="updateBanner" DockPanel.Dock="Top" IsVisible="{Binding ShowUpdateBanner}">
+        <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+          <TextBlock Grid.Column="0" Text="{Binding UpdateBannerText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+          <Button Grid.Column="1" Content="Update now" Command="{Binding InstallUpdateCommand}" Classes="secondary" Margin="8,0"/>
+          <Button Grid.Column="2" Content="Later" Command="{Binding DismissUpdateBannerCommand}" Classes="secondary" Margin="0,0,8,0"/>
+          <Button Grid.Column="3" Content="✕" Command="{Binding DismissUpdateBannerCommand}" Classes="icon"/>
+        </Grid>
+      </Border>
+
+      <!-- Top toolbar -->
+      <Border DockPanel.Dock="Top" Padding="16,10" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,0,0,1">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+          <TextBlock Grid.Column="0" Text="Screens" FontWeight="Bold" FontSize="18" VerticalAlignment="Center"/>
+          <Button Grid.Column="2" Content="Zoom to fit / 100%" Command="{Binding ToggleZoomCommand}" Classes="secondary" Margin="0,0,8,0"/>
+          <Button Grid.Column="3" Content="Export (Ctrl+E)" Command="{Binding ExportCommand}" Classes="primary" Margin="0,0,8,0"
+                  HotKey="Ctrl+E"/>
+          <Button Grid.Column="4" Content="Settings" Command="{Binding ToggleSettingsCommand}" Classes="secondary"/>
+        </Grid>
+      </Border>
+
+      <Grid ColumnDefinitions="260,*,340">
+
+        <!-- Template gallery -->
+        <ScrollViewer Grid.Column="0" Padding="12">
+          <StackPanel Spacing="8">
+            <ItemsControl ItemsSource="{Binding Templates}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="models:TemplateManifest">
+                  <Border Classes="card" Margin="0,0,0,8" Padding="10"
+                          PointerPressed="OnTemplateTilePressed" Tag="{Binding}">
+                    <StackPanel Spacing="4">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                      <TextBlock Text="{Binding Category}" Classes="muted"/>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <ItemsControl ItemsSource="{Binding Warnings}" Margin="0,12,0,0">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding Message}" Classes="muted" Foreground="{DynamicResource BrushDanger}" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </ScrollViewer>
+
+        <!-- Canvas preview -->
+        <Border Grid.Column="1" Background="{DynamicResource BrushSurfaceElevated}" Margin="0" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1,0">
+          <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <Image x:Name="PreviewImageControl" Source="{Binding PreviewImage}" Margin="24"
+                   Stretch="{Binding ZoomToFit, Converter={x:Static conv:BoolToStretchConverter.Instance}}"/>
+          </ScrollViewer>
+        </Border>
+
+        <!-- Field editor -->
+        <ScrollViewer Grid.Column="2" Padding="16">
+          <StackPanel Spacing="16">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+              <TextBlock Grid.Column="0" Text="Fields" FontWeight="Bold" VerticalAlignment="Center"/>
+              <Button Grid.Column="1" Content="Reset" Command="{Binding ResetToDefaultsCommand}" Classes="secondary" Margin="0,0,6,0"/>
+              <Button Grid.Column="2" Content="Clear all" Command="{Binding ClearAllCommand}" Classes="secondary"/>
+            </Grid>
+
+            <ItemsControl ItemsSource="{Binding Fields}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:FieldEditorItemViewModel">
+                  <StackPanel Spacing="6" Margin="0,0,0,14">
+                    <TextBlock Text="{Binding Field.Label}" Classes="muted"/>
+                    <TextBox Text="{Binding Value, Mode=TwoWay}" Watermark="{Binding Field.Placeholder}"
+                              AcceptsReturn="{Binding Field.Multiline}" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding CounterText}" Classes="muted" HorizontalAlignment="Right" IsVisible="{Binding HasMaxLength}"/>
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+    </DockPanel>
+
+    <!-- Export toast -->
+    <Border Classes="toast" IsVisible="{Binding ShowToast}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,24">
+      <StackPanel Orientation="Horizontal" Spacing="12">
+        <TextBlock Text="{Binding ToastMessage}" VerticalAlignment="Center"/>
+        <Button Content="Open folder" Classes="secondary" Click="OnOpenFolderClicked"/>
+        <Button Content="✕" Classes="icon" Command="{Binding DismissToastCommand}"/>
+      </StackPanel>
+    </Border>
+
+    <!-- Settings / About overlay -->
+    <Border Background="{DynamicResource BrushOverlay}" IsVisible="{Binding ShowSettings}">
+      <Border Classes="card" Width="420" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <StackPanel Spacing="16">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Grid.Column="0" Text="Settings &amp; About" FontWeight="Bold" FontSize="18"/>
+            <Button Grid.Column="1" Content="✕" Classes="icon" Command="{Binding ToggleSettingsCommand}"/>
+          </Grid>
+
+          <StackPanel Spacing="6">
+            <TextBlock Text="Theme" Classes="muted"/>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Content="Light" Classes="secondary" Click="OnThemeLightClicked"/>
+              <Button Content="Dark" Classes="secondary" Click="OnThemeDarkClicked"/>
+              <Button Content="System" Classes="secondary" Click="OnThemeSystemClicked"/>
+            </StackPanel>
+          </StackPanel>
+
+          <StackPanel Spacing="4">
+            <TextBlock Text="{Binding CurrentVersionText}"/>
+            <TextBlock Classes="muted">
+              <Run Text="Last checked: "/><Run Text="{Binding LastCheckedText}"/>
+            </TextBlock>
+            <TextBlock Text="{Binding CheckForUpdatesResult}" Classes="secondary"/>
+          </StackPanel>
+
+          <Button Content="Check for updates" Command="{Binding CheckForUpdatesManualCommand}" Classes="secondary" HorizontalAlignment="Left"/>
+
+          <Button Content="Sign out" Classes="secondary" Click="OnSignOutClicked" HorizontalAlignment="Left"/>
+        </StackPanel>
+      </Border>
+    </Border>
+  </Panel>
+
+</UserControl>
