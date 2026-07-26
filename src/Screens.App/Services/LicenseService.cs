@@ -80,8 +80,11 @@ public sealed class LicenseService : IDisposable
                 return RedeemOutcome.InvalidKey;
             return RedeemOutcome.Unknown;
         }
-        catch (HttpRequestException)
+        catch (Exception)
         {
+            // Broad on purpose: a malformed response, timeout, or DNS
+            // failure must surface as "couldn't reach the server," not
+            // crash the RelayCommand that called this.
             return RedeemOutcome.NoNetwork;
         }
     }
@@ -114,10 +117,25 @@ public sealed class LicenseService : IDisposable
             await _settings.SaveLicenseStateAsync(State);
             StateChanged?.Invoke(State);
         }
-        catch (Exception) when (State.LastVerifiedAt is not null)
+        catch (Exception)
         {
-            var elapsed = DateTimeOffset.UtcNow - State.LastVerifiedAt.Value;
-            InOfflineGrace = elapsed <= OfflineGrace;
+            // Must never throw out of here: this runs during app startup
+            // (ShellViewModel.InitializeAsync) and on a background timer, and
+            // an uncaught exception on either path used to silently strand
+            // the UI on the splash screen forever. Covers real network
+            // failures (72h offline grace applies) and server-side errors
+            // like a not-yet-applied schema (no prior verification to grace
+            // against, so this always de-activates instead of throwing).
+            if (State.LastVerifiedAt is not null)
+            {
+                var elapsed = DateTimeOffset.UtcNow - State.LastVerifiedAt.Value;
+                InOfflineGrace = elapsed <= OfflineGrace;
+            }
+            else
+            {
+                InOfflineGrace = false;
+            }
+
             if (!InOfflineGrace)
             {
                 State.IsActive = false;

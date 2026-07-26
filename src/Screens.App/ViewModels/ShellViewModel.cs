@@ -33,21 +33,40 @@ public partial class ShellViewModel : ViewModelBase
         ActivationViewModel = activationVm;
         MainViewModel = mainVm;
 
-        AuthViewModel.Authenticated += async (_, _) => await AfterAuthAsync();
+        AuthViewModel.Authenticated += async (_, _) =>
+        {
+            // This is an async-void event handler: an uncaught exception
+            // here doesn't propagate anywhere useful, it just vanishes and
+            // leaves the UI stuck wherever it was. Never let that happen.
+            try { await AfterAuthAsync(); }
+            catch { Screen = ShellScreen.Activation; }
+        };
         ActivationViewModel.Activated += (_, _) => Screen = ShellScreen.Main;
         _license.StateChanged += OnLicenseStateChanged;
     }
 
     public async Task InitializeAsync()
     {
-        var restored = await _auth.TryRestoreSessionAsync();
-        if (!restored)
+        // Called fire-and-forget from App.axaml.cs (there's nothing to await
+        // it from at that point — the window is already showing). An
+        // uncaught exception anywhere below must never leave the app
+        // stranded on the splash screen forever, so this is the one place
+        // allowed to catch everything.
+        try
+        {
+            var restored = await _auth.TryRestoreSessionAsync();
+            if (!restored)
+            {
+                Screen = ShellScreen.Auth;
+                return;
+            }
+
+            await AfterAuthAsync();
+        }
+        catch
         {
             Screen = ShellScreen.Auth;
-            return;
         }
-
-        await AfterAuthAsync();
     }
 
     private async Task AfterAuthAsync()

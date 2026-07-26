@@ -1,7 +1,7 @@
 {
-  "version": "1.0.2",
-  "notes": "Fixed sign-up/sign-in failing with a generic error (missing Authorization header on auth requests).",
-  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.0.2.exe",
-  "sha256": "f9d1e7b2a00aa0089809a8b7c73683568ca603733b8958995405c5876c5bf952",
+  "version": "1.0.3",
+  "notes": "Fixed the app getting stuck on the splash screen after sign-up when the license check failed (e.g. schema not yet applied).",
+  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.0.3.exe",
+  "sha256": "f142df1d407c57131473338567717729cb233a07b101e6571f25272cf7ccdf74",
   "mandatory": false
 }
