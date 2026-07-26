@@ -1,7 +1,7 @@
 {
-  "version": "1.1.1",
-  "notes": "Fixed: app now actually restarts after installing an update (the auto-relaunch never fired before). Zoom is now flexible (10%-400%, +/- buttons, Ctrl+scroll, click-to-fit) instead of a fit/100% toggle.",
-  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.1.1.exe",
-  "sha256": "b24c6804781787a23614ae1903500902254a24fb336424b92d2e96c227e779d9",
+  "version": "1.2.0",
+  "notes": "New: generic Phone Mockup template with photo upload (drop your own photo into a device frame). New image field type for templates.",
+  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.2.0.exe",
+  "sha256": "d18c322b091cb3ebfd7299c93460989df42c7b5a2b182637623c1755df5e7b96",
   "mandatory": false
 }

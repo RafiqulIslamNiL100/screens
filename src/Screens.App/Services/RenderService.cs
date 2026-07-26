@@ -40,6 +40,11 @@ public sealed class RenderService
                     DrawQr(canvas, field, text);
                     continue;
                 }
+                if (field.Type == "image")
+                {
+                    DrawImage(canvas, field, text);
+                    continue;
+                }
                 if (field.Uppercase)
                     text = text.ToUpperInvariant();
                 DrawField(canvas, field, text);
@@ -128,6 +133,49 @@ public sealed class RenderService
 
         var dest = new SKRect(box.MidX - size / 2f, box.MidY - size / 2f, box.MidX + size / 2f, box.MidY + size / 2f);
         canvas.DrawBitmap(qrBitmap, dest);
+    }
+
+    /// <summary>Draws a user-chosen photo into a field's box with "cover" fit (fills the box,
+    /// centered, cropping overflow rather than letterboxing) — the standard behavior for a
+    /// device-mockup "screen" placeholder. <paramref name="path"/> is a local file path chosen
+    /// via the field editor's photo picker; an empty/missing/undecodable path draws nothing,
+    /// leaving the template's own background art (e.g. an empty phone screen) visible.</summary>
+    private static void DrawImage(SKCanvas canvas, TemplateField field, string path)
+    {
+        var box = new SKRect(
+            (float)field.Box.X, (float)field.Box.Y,
+            (float)(field.Box.X + field.Box.Width), (float)(field.Box.Y + field.Box.Height));
+
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            return;
+
+        using var photo = SKBitmap.Decode(path);
+        if (photo is null)
+            return;
+
+        var boxAspect = box.Width / box.Height;
+        var photoAspect = (float)photo.Width / photo.Height;
+
+        SKRect srcRect;
+        if (photoAspect > boxAspect)
+        {
+            // Photo is relatively wider than the box: crop its left/right edges.
+            var cropWidth = photo.Height * boxAspect;
+            var x = (photo.Width - cropWidth) / 2f;
+            srcRect = new SKRect(x, 0, x + cropWidth, photo.Height);
+        }
+        else
+        {
+            // Photo is relatively taller than the box: crop its top/bottom edges.
+            var cropHeight = photo.Width / boxAspect;
+            var y = (photo.Height - cropHeight) / 2f;
+            srcRect = new SKRect(0, y, photo.Width, y + cropHeight);
+        }
+
+        canvas.Save();
+        canvas.ClipRect(box);
+        canvas.DrawBitmap(photo, srcRect, box);
+        canvas.Restore();
     }
 
     private void DrawField(SKCanvas canvas, TemplateField field, string text)

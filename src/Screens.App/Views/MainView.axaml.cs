@@ -75,6 +75,38 @@ public partial class MainView : UserControl
             vm.SelectedTemplate = manifest;
     }
 
+    private async void OnChoosePhotoClicked(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { Tag: FieldEditorItemViewModel field })
+            return;
+
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel is null)
+            return;
+
+        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Choose a photo",
+            AllowMultiple = false,
+            FileTypeFilter = new[]
+            {
+                new FilePickerFileType("Images") { Patterns = new[] { "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.webp" } },
+            },
+        });
+
+        var file = files.Count > 0 ? files[0] : null;
+        if (file is null)
+            return;
+
+        field.Value = file.Path.LocalPath;
+    }
+
+    private void OnClearPhotoClicked(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { Tag: FieldEditorItemViewModel field })
+            field.Value = "";
+    }
+
     private static FilePickerFileType[] FileTypeChoices(ExportFormat requested) => requested switch
     {
         ExportFormat.Jpg => new[] { new FilePickerFileType("JPEG image") { Patterns = new[] { "*.jpg" } } },

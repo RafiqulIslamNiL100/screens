@@ -1,0 +1,47 @@
+{
+  "id": "phone-mockup",
+  "name": "Phone Mockup",
+  "category": "Mockup",
+  "image": "phone-mockup.png",
+  "canvas": { "width": 1200, "height": 2640 },
+  "fields": [
+    {
+      "id": "photo",
+      "type": "image",
+      "label": "Photo",
+      "default": "",
+      "placeholder": "Choose a photo to fill the screen",
+      "multiline": false,
+      "box": { "x": 118, "y": 118, "width": 964, "height": 2164 },
+      "align": "center",
+      "verticalAlign": "middle",
+      "font": { "family": "Inter", "size": 32, "weight": "Regular", "italic": false },
+      "color": "#1A1028",
+      "lineHeight": 1.2,
+      "letterSpacing": 0,
+      "uppercase": false,
+      "autoShrink": false,
+      "userEditableColor": false,
+      "userEditableSize": false
+    },
+    {
+      "id": "caption",
+      "label": "Caption (optional)",
+      "default": "Your caption here",
+      "placeholder": "A short line under the mockup",
+      "maxLength": 60,
+      "multiline": false,
+      "box": { "x": 100, "y": 2450, "width": 1000, "height": 100 },
+      "align": "center",
+      "verticalAlign": "middle",
+      "font": { "family": "Inter", "size": 44, "weight": "Bold", "italic": false },
+      "color": "#1A1028",
+      "lineHeight": 1.2,
+      "letterSpacing": 0,
+      "uppercase": false,
+      "autoShrink": true,
+      "userEditableColor": true,
+      "userEditableSize": true
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generates the 8 bundled template background images (purple palette,
+"""Generates the bundled template background images (purple palette,
 original geometric artwork, no stock imagery). Run from this directory:
     python3 generate_templates.py
 Outputs land next to this script; only the PNGs ship in the app.
@@ -177,6 +177,37 @@ def award_employee():
     save(img, "award-employee.png")
 
 
+# 9. Generic phone mockup — phone-mockup (device frame for a user photo; no brand/logo)
+def phone_mockup():
+    w, h = 1200, 2640
+    img = Image.new("RGB", (w, h), SURFACE_LIGHT)
+    draw = ImageDraw.Draw(img)
+    top = vertical_gradient((w, 2400), (238, 231, 250), SURFACE_LIGHT)
+    img.paste(top, (0, 0))
+    draw = ImageDraw.Draw(img)
+
+    bezel_margin = 90
+    bx0, by0, bx1, by1 = bezel_margin, bezel_margin, w - bezel_margin, 2400 - bezel_margin
+    bezel_radius = 140
+    draw.rounded_rectangle([bx0, by0, bx1, by1], radius=bezel_radius, fill=SURFACE_DARK)
+
+    screen_inset = 28
+    sx0, sy0, sx1, sy1 = bx0 + screen_inset, by0 + screen_inset, bx1 - screen_inset, by1 - screen_inset
+    draw.rounded_rectangle([sx0, sy0, sx1, sy1], radius=bezel_radius - screen_inset, fill=(15, 8, 26))
+
+    cutout_w, cutout_h = 200, 46
+    cx = w / 2
+    draw.rounded_rectangle([cx - cutout_w / 2, sy0 + 36, cx + cutout_w / 2, sy0 + 36 + cutout_h], radius=cutout_h / 2, fill=SURFACE_DARK)
+
+    bar_w, bar_h = 260, 12
+    draw.rounded_rectangle([cx - bar_w / 2, sy1 - 46, cx + bar_w / 2, sy1 - 46 + bar_h], radius=bar_h / 2, fill=(80, 70, 100))
+
+    draw.rounded_rectangle([bx0 - 6, by0 + 260, bx0 + 2, by0 + 380], radius=6, fill=SURFACE_DARK)
+    draw.rounded_rectangle([bx1 - 2, by0 + 300, bx1 + 6, by0 + 480], radius=6, fill=SURFACE_DARK)
+
+    save(img, "phone-mockup.png")
+
+
 if __name__ == "__main__":
     cert_classic()
     badge_lanyard()
@@ -186,3 +217,4 @@ if __name__ == "__main__":
     quote_social()
     realestate_card()
     award_employee()
+    phone_mockup()

@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Screens.App.ViewModels"
              xmlns:models="using:Screens.App.Models"
+             xmlns:conv="using:Screens.App.Converters"
              x:Class="Screens.App.Views.MainView"
              x:DataType="vm:MainViewModel">
 
@@ -145,9 +146,22 @@
                 <DataTemplate x:DataType="vm:FieldEditorItemViewModel">
                   <StackPanel Spacing="6" Margin="0,0,0,14">
                     <TextBlock Text="{Binding Field.Label}" Classes="muted"/>
-                    <TextBox Text="{Binding Value, Mode=TwoWay}" Watermark="{Binding Field.Placeholder}"
+
+                    <!-- Image field: photo picker instead of a text box -->
+                    <StackPanel Spacing="8" IsVisible="{Binding IsImage}">
+                      <Border Classes="card" Width="140" Height="140" HorizontalAlignment="Left" IsVisible="{Binding HasPhoto}">
+                        <Image Source="{Binding Value, Converter={x:Static conv:PathToBitmapConverter.Instance}}" Stretch="UniformToFill"/>
+                      </Border>
+                      <TextBlock Text="{Binding Field.Placeholder}" Classes="muted" IsVisible="{Binding !HasPhoto}"/>
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="Choose photo…" Classes="secondary" Tag="{Binding}" Click="OnChoosePhotoClicked"/>
+                        <Button Content="Clear" Classes="secondary" Tag="{Binding}" Click="OnClearPhotoClicked" IsVisible="{Binding HasPhoto}"/>
+                      </StackPanel>
+                    </StackPanel>
+
+                    <TextBox IsVisible="{Binding !IsImage}" Text="{Binding Value, Mode=TwoWay}" Watermark="{Binding Field.Placeholder}"
                               AcceptsReturn="{Binding Field.Multiline}" TextWrapping="Wrap"/>
-                    <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding !IsQr}">
+                    <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding !IsImage}">
                       <TextBlock Grid.Column="0" Text="Will shrink to fit" Classes="muted" Foreground="{DynamicResource BrushPrimaryLight}" IsVisible="{Binding WillShrink}"/>
                       <TextBlock Grid.Column="1" Text="{Binding CounterText}" Classes="muted" HorizontalAlignment="Right" IsVisible="{Binding HasMaxLength}"/>
                     </Grid>

@@ -23,8 +23,10 @@ public partial class FieldEditorItemViewModel : ViewModelBase
     }
 
     public bool IsQr => Field.Type == "qr";
-    public bool ShowColorPicker => Field.UserEditableColor && !IsQr;
-    public bool ShowSizePicker => Field.UserEditableSize && !IsQr;
+    public bool IsImage => Field.Type == "image";
+    public bool HasPhoto => IsImage && !string.IsNullOrEmpty(Value);
+    public bool ShowColorPicker => Field.UserEditableColor && !IsQr && !IsImage;
+    public bool ShowSizePicker => Field.UserEditableSize && !IsQr && !IsImage;
 
     public int CharacterCount => Value.Length;
     public bool HasMaxLength => Field.MaxLength.HasValue;
@@ -39,7 +41,7 @@ public partial class FieldEditorItemViewModel : ViewModelBase
     {
         get
         {
-            if (IsQr || !Field.AutoShrink || Value.Length == 0)
+            if (IsQr || IsImage || !Field.AutoShrink || Value.Length == 0)
                 return false;
             var approxCharWidth = Field.Font.Size * 0.55;
             var charsPerLine = Math.Max(1, (int)(Field.Box.Width / approxCharWidth));
@@ -62,6 +64,7 @@ public partial class FieldEditorItemViewModel : ViewModelBase
         OnPropertyChanged(nameof(CharacterCount));
         OnPropertyChanged(nameof(CounterText));
         OnPropertyChanged(nameof(WillShrink));
+        OnPropertyChanged(nameof(HasPhoto));
         ValueChanged?.Invoke(this, EventArgs.Empty);
     }
 
