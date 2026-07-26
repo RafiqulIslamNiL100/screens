@@ -36,12 +36,14 @@ $$;
 -- ---------------------------------------------------------------------
 
 -- A user can read only the row assigned to them.
+drop policy if exists "user reads own license" on public.license_keys;
 create policy "user reads own license"
   on public.license_keys
   for select
   using (assigned_user = auth.uid());
 
 -- Admins can do everything.
+drop policy if exists "admin full access to license_keys" on public.license_keys;
 create policy "admin full access to license_keys"
   on public.license_keys
   for all
@@ -66,6 +68,7 @@ create policy "admin full access to license_keys"
 -- keep this policy if you're comfortable with that — remove it and restore
 -- an authenticated admin flow in admin.html if you ever need real access
 -- control on key management.
+drop policy if exists "anon full access to license_keys (admin.html, no login)" on public.license_keys;
 create policy "anon full access to license_keys (admin.html, no login)"
   on public.license_keys
   for all
@@ -79,11 +82,13 @@ grant select, insert, update, delete on public.license_keys to anon;
 -- admins policies
 -- ---------------------------------------------------------------------
 
+drop policy if exists "admin reads admins table" on public.admins;
 create policy "admin reads admins table"
   on public.admins
   for select
   using (public.is_admin());
 
+drop policy if exists "admin manages admins table" on public.admins;
 create policy "admin manages admins table"
   on public.admins
   for all
