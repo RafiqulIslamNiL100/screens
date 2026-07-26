@@ -1,0 +1,47 @@
+{
+  "id": "sale-tag",
+  "name": "Sale / Discount Tag",
+  "category": "Tag",
+  "image": "sale-tag.png",
+  "canvas": { "width": 1400, "height": 900 },
+  "fields": [
+    {
+      "id": "discount",
+      "label": "Discount",
+      "default": "30% OFF",
+      "placeholder": "e.g. 30% OFF",
+      "maxLength": 12,
+      "multiline": false,
+      "box": { "x": 260, "y": 260, "width": 1080, "height": 220 },
+      "align": "center",
+      "verticalAlign": "middle",
+      "font": { "family": "Playfair Display", "size": 130, "weight": "Bold", "italic": false },
+      "color": "#F8F6FC",
+      "lineHeight": 1.0,
+      "letterSpacing": 0,
+      "uppercase": true,
+      "autoShrink": true,
+      "userEditableColor": false,
+      "userEditableSize": false
+    },
+    {
+      "id": "product",
+      "label": "Applies To",
+      "default": "All Winter Jackets",
+      "placeholder": "What's on sale?",
+      "maxLength": 30,
+      "multiline": false,
+      "box": { "x": 260, "y": 520, "width": 1080, "height": 90 },
+      "align": "center",
+      "verticalAlign": "middle",
+      "font": { "family": "Inter", "size": 44, "weight": "Regular", "italic": false },
+      "color": "#EFE9F8",
+      "lineHeight": 1.2,
+      "letterSpacing": 0,
+      "uppercase": false,
+      "autoShrink": true,
+      "userEditableColor": false,
+      "userEditableSize": false
+    }
+  ]
+}

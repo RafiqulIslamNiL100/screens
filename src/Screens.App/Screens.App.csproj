@@ -16,7 +16,21 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <AvaloniaResource Include="Assets\**" />
+    <!-- Icons stay embedded avares:// resources; everything TemplateService/
+         FontRegistry load from disk (fonts, template images+manifests) is
+         copied as loose files next to the exe instead. -->
+    <AvaloniaResource Include="Assets\Icons\**" />
+
+    <None Include="Assets\Fonts\**\*.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>Assets\Fonts\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </None>
+    <None Include="Assets\Templates\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Assets\Templates\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
