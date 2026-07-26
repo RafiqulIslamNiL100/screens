@@ -6,6 +6,7 @@
         x:Class="Screens.App.Views.MainWindow"
         x:DataType="vm:ShellViewModel"
         Title="Screens"
+        Icon="avares://Screens/Assets/Icons/app.ico"
         Width="1280" Height="800" MinWidth="960" MinHeight="640"
         Background="{DynamicResource BrushSurface}"
         WindowStartupLocation="CenterScreen">

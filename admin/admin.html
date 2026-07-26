@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screens Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --primary: #7C3AED;
+    --primary-dark: #6D28D9;
+    --primary-light: #A78BFA;
+    --surface: #F8F6FC;
+    --surface-elevated: #FFFFFF;
+    --surface-elevated-2: #EFE9F8;
+    --border: #DCD2F0;
+    --text-primary: #1A1028;
+    --text-secondary: #4B3E68;
+    --text-muted: #786A9B;
+    --danger: #DC2626;
+    --success: #16A34A;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface: #1A1028;
+      --surface-elevated: #241A38;
+      --surface-elevated-2: #2E2247;
+      --border: #3A2C57;
+      --text-primary: #F5F3FA;
+      --text-secondary: #C7BEDD;
+      --text-muted: #9284B3;
+      --danger: #F87171;
+      --success: #4ADE80;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Inter, Roboto, sans-serif;
+    background: var(--surface);
+    color: var(--text-primary);
+    min-height: 100vh;
+  }
+  header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
+  .mark { width: 28px; height: 28px; border-radius: 8px; background: var(--primary); }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+  .card {
+    background: var(--surface-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+  input, select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-elevated);
+    color: var(--text-primary);
+    font-size: 14px;
+  }
+  input:focus, select:focus { outline: 2px solid var(--primary); border-color: var(--primary); }
+  button {
+    font-size: 14px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  button.primary { background: var(--primary); color: #fff; }
+  button.primary:hover { background: var(--primary-dark); }
+  button.secondary { background: transparent; border-color: var(--border); color: var(--text-primary); }
+  button.secondary:hover { border-color: var(--primary-light); }
+  button.danger { background: transparent; border-color: var(--danger); color: var(--danger); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  .row > div { flex: 1; min-width: 160px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--text-muted); font-weight: 600; }
+  .badge { padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .badge.active { background: rgba(22,163,74,.15); color: var(--success); }
+  .badge.revoked { background: rgba(220,38,38,.15); color: var(--danger); }
+  .muted { color: var(--text-muted); font-size: 12px; }
+  code.key { font-family: "SF Mono", Consolas, monospace; }
+  #loginView { display: flex; align-items: center; justify-content: center; min-height: 80vh; }
+  #loginCard { width: 360px; }
+  #appView { display: none; }
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--surface-elevated-2); border: 1px solid var(--border);
+    padding: 10px 16px; border-radius: 10px; font-size: 13px; display: none;
+  }
+  .error { color: var(--danger); font-size: 13px; margin-top: 8px; }
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(26,16,40,.5);
+    display: none; align-items: center; justify-content: center;
+  }
+  .modal { background: var(--surface-elevated); border-radius: 12px; padding: 24px; width: 360px; border: 1px solid var(--border); }
+  .actions-cell { display: flex; gap: 6px; }
+  textarea {
+    width: 100%; min-height: 90px; font-family: monospace; font-size: 12px;
+    border-radius: 8px; border: 1px solid var(--border); background: var(--surface-elevated); color: var(--text-primary); padding: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div id="loginView">
+  <div class="card" id="loginCard">
+    <h1>Screens Admin</h1>
+    <p class="muted">Sign in with an admin account.</p>
+    <div style="margin-top:16px;">
+      <label for="loginEmail">Email</label>
+      <input id="loginEmail" type="email" placeholder="admin@example.com">
+    </div>
+    <div style="margin-top:12px;">
+      <label for="loginPassword">Password</label>
+      <input id="loginPassword" type="password" placeholder="Password">
+    </div>
+    <div style="margin-top:12px;">
+      <label for="supabaseUrl">Supabase Project URL</label>
+      <input id="supabaseUrl" placeholder="https://YOUR-PROJECT.supabase.co">
+    </div>
+    <div style="margin-top:12px;">
+      <label for="supabaseAnonKey">Supabase Anon Key</label>
+      <input id="supabaseAnonKey" placeholder="Anon (public) key">
+    </div>
+    <button class="primary" id="loginBtn" style="margin-top:16px; width:100%;">Sign in</button>
+    <div class="error" id="loginError"></div>
+    <p class="muted" style="margin-top:12px;">
+      Project URL and anon key are saved locally in this browser only. Never paste the
+      service-role key here — this dashboard authenticates as an admin user and relies on
+      Row Level Security, per <code>db/schema.sql</code>.
+    </p>
+  </div>
+</div>
+
+<div id="appView">
+  <header>
+    <div class="brand"><div class="mark"></div>Screens Admin</div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span class="muted" id="whoami"></span>
+      <button class="secondary" id="signOutBtn">Sign out</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>Generate keys</h2>
+      <div class="row">
+        <div>
+          <label for="genCount">Batch size</label>
+          <input id="genCount" type="number" min="1" max="500" value="10">
+        </div>
+        <div style="flex:2;">
+          <label for="genNote">Note (optional)</label>
+          <input id="genNote" placeholder="e.g. Reseller batch, Aug 2026">
+        </div>
+        <div style="flex:0;">
+          <button class="primary" id="genBtn">Generate</button>
+        </div>
+      </div>
+      <div id="genResultWrap" style="display:none; margin-top:14px;">
+        <label>Generated keys</label>
+        <textarea id="genResult" readonly></textarea>
+        <div class="row" style="margin-top:8px;">
+          <button class="secondary" id="copyAllBtn">Copy all</button>
+          <button class="secondary" id="csvBtn">Download CSV</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>License keys</h2>
+      <div class="row" style="margin-bottom:12px;">
+        <div>
+          <label for="searchInput">Search</label>
+          <input id="searchInput" placeholder="Key or note">
+        </div>
+        <div>
+          <label for="statusFilter">Status</label>
+          <select id="statusFilter">
+            <option value="">All</option>
+            <option value="active">Active (assigned)</option>
+            <option value="unassigned">Active (unassigned)</option>
+            <option value="revoked">Revoked</option>
+          </select>
+        </div>
+        <div style="flex:0;">
+          <button class="secondary" id="refreshBtn">Refresh</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Key</th><th>Status</th><th>Assigned user</th><th>Created</th><th>Redeemed</th><th>Note</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="keysBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Users</h2>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>Email</th><th>Status</th><th>License key</th></tr></thead>
+          <tbody id="usersBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-backdrop" id="confirmBackdrop">
+  <div class="modal">
+    <h2 id="confirmTitle">Confirm</h2>
+    <p class="muted" id="confirmBody"></p>
+    <div class="row" style="margin-top:16px;">
+      <button class="secondary" id="confirmCancel">Cancel</button>
+      <button class="danger" id="confirmOk">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  const LS_URL = "screens_admin_supabase_url";
+  const LS_KEY = "screens_admin_supabase_anon_key";
+
+  let supabase = null;
+  let currentUser = null;
+  let allKeys = [];
+  let confirmResolve = null;
+
+  const $ = (id) => document.getElementById(id);
+
+  function toast(msg) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.style.display = "block";
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => { t.style.display = "none"; }, 3000);
+  }
+
+  function confirmDialog(title, body) {
+    $("confirmTitle").textContent = title;
+    $("confirmBody").textContent = body;
+    $("confirmBackdrop").style.display = "flex";
+    return new Promise((resolve) => { confirmResolve = resolve; });
+  }
+  $("confirmCancel").onclick = () => { $("confirmBackdrop").style.display = "none"; confirmResolve?.(false); };
+  $("confirmOk").onclick = () => { $("confirmBackdrop").style.display = "none"; confirmResolve?.(true); };
+
+  // ---- Key generation ----------------------------------------------------
+  const KEY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous chars
+
+  function randomKeyGroup(len) {
+    const bytes = new Uint32Array(len);
+    crypto.getRandomValues(bytes);
+    let out = "";
+    for (let i = 0; i < len; i++) out += KEY_ALPHABET[bytes[i] % KEY_ALPHABET.length];
+    return out;
+  }
+
+  function generateKey() {
+    return [randomKeyGroup(4), randomKeyGroup(4), randomKeyGroup(4), randomKeyGroup(4)].join("-");
+  }
+
+  $("genBtn").onclick = async () => {
+    const count = Math.max(1, Math.min(500, parseInt($("genCount").value, 10) || 1));
+    const note = $("genNote").value.trim() || null;
+    const keys = Array.from({ length: count }, generateKey);
+
+    $("genBtn").disabled = true;
+    try {
+      const rows = keys.map((key) => ({ key, note, status: "active" }));
+      const { error } = await supabase.from("license_keys").insert(rows);
+      if (error) throw error;
+
+      $("genResultWrap").style.display = "block";
+      $("genResult").value = keys.join("\n");
+      toast(`Generated ${count} key${count === 1 ? "" : "s"}.`);
+      await loadKeys();
+    } catch (err) {
+      toast("Failed to generate keys: " + err.message);
+    } finally {
+      $("genBtn").disabled = false;
+    }
+  };
+
+  $("copyAllBtn").onclick = async () => {
+    await navigator.clipboard.writeText($("genResult").value);
+    toast("Copied to clipboard.");
+  };
+
+  $("csvBtn").onclick = () => {
+    const keys = $("genResult").value.split("\n").filter(Boolean);
+    const csv = "key\n" + keys.join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `screens-keys-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ---- Keys table ----------------------------------------------------------
+  async function loadKeys() {
+    const { data, error } = await supabase
+      .from("license_keys")
+      .select("key,status,assigned_user,created_at,redeemed_at,note")
+      .order("created_at", { ascending: false });
+    if (error) { toast("Failed to load keys: " + error.message); return; }
+    allKeys = data || [];
+    renderKeys();
+  }
+
+  function renderKeys() {
+    const search = $("searchInput").value.trim().toLowerCase();
+    const filter = $("statusFilter").value;
+    const tbody = $("keysBody");
+    tbody.innerHTML = "";
+
+    const rows = allKeys.filter((k) => {
+      if (search && !(k.key.toLowerCase().includes(search) || (k.note || "").toLowerCase().includes(search))) return false;
+      if (filter === "active" && !(k.status === "active" && k.assigned_user)) return false;
+      if (filter === "unassigned" && !(k.status === "active" && !k.assigned_user)) return false;
+      if (filter === "revoked" && k.status !== "revoked") return false;
+      return true;
+    });
+
+    for (const k of rows) {
+      const tr = document.createElement("tr");
+      const badgeClass = k.status === "revoked" ? "revoked" : "active";
+      const badgeText = k.status === "revoked" ? "Revoked" : (k.assigned_user ? "Active" : "Unassigned");
+      tr.innerHTML = `
+        <td><code class="key">${escapeHtml(k.key)}</code></td>
+        <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+        <td class="muted">${k.assigned_user ? escapeHtml(k.assigned_user) : "—"}</td>
+        <td class="muted">${formatDate(k.created_at)}</td>
+        <td class="muted">${formatDate(k.redeemed_at)}</td>
+        <td class="muted">${escapeHtml(k.note || "")}</td>
+        <td class="actions-cell"></td>
+      `;
+      const actionsCell = tr.querySelector(".actions-cell");
+      if (k.status === "revoked") {
+        const btn = document.createElement("button");
+        btn.className = "secondary";
+        btn.textContent = "Restore";
+        btn.onclick = () => setKeyStatus(k.key, "active", "Restore this key?", `Restore ${k.key} so it can be used again?`);
+        actionsCell.appendChild(btn);
+      } else {
+        const btn = document.createElement("button");
+        btn.className = "danger";
+        btn.textContent = "Revoke";
+        btn.onclick = () => setKeyStatus(k.key, "revoked", "Revoke this key?", `Revoke ${k.key}? The holder will be locked out within 5 minutes.`);
+        actionsCell.appendChild(btn);
+      }
+      tbody.appendChild(tr);
+    }
+  }
+
+  async function setKeyStatus(key, status, title, body) {
+    if (!(await confirmDialog(title, body))) return;
+    const { error } = await supabase.from("license_keys").update({ status }).eq("key", key);
+    if (error) { toast("Failed: " + error.message); return; }
+    toast(status === "revoked" ? "Key revoked." : "Key restored.");
+    await loadKeys();
+  }
+
+  $("searchInput").oninput = renderKeys;
+  $("statusFilter").onchange = renderKeys;
+  $("refreshBtn").onclick = loadKeys;
+
+  // ---- Users view ----------------------------------------------------------
+  async function loadUsers() {
+    // No admin API exposed to the browser (service-role key must never ship
+    // here); we infer "users" from the license_keys assignment we can already
+    // see under RLS, keyed by user id.
+    const tbody = $("usersBody");
+    tbody.innerHTML = "";
+    const assigned = allKeys.filter((k) => k.assigned_user);
+    for (const k of assigned) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="muted">${escapeHtml(k.assigned_user)}</td>
+        <td><span class="badge ${k.status === "revoked" ? "revoked" : "active"}">${k.status === "revoked" ? "Inactive" : "Active"}</span></td>
+        <td><code class="key">${escapeHtml(k.key)}</code></td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+
+  // ---- Auth ------------------------------------------------------------
+  $("loginBtn").onclick = async () => {
+    $("loginError").textContent = "";
+    const url = $("supabaseUrl").value.trim();
+    const anonKey = $("supabaseAnonKey").value.trim();
+    const email = $("loginEmail").value.trim();
+    const password = $("loginPassword").value;
+
+    if (!url || !anonKey || !email || !password) {
+      $("loginError").textContent = "All fields are required.";
+      return;
+    }
+
+    supabase = window.supabase.createClient(url, anonKey);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) { $("loginError").textContent = error.message; return; }
+
+    // Verify admin membership (RLS also enforces this server-side).
+    const { data: adminRow } = await supabase.from("admins").select("user_id").eq("user_id", data.user.id).maybeSingle();
+    if (!adminRow) {
+      $("loginError").textContent = "This account is not an admin.";
+      await supabase.auth.signOut();
+      return;
+    }
+
+    localStorage.setItem(LS_URL, url);
+    localStorage.setItem(LS_KEY, anonKey);
+    currentUser = data.user;
+    showApp();
+  };
+
+  $("signOutBtn").onclick = async () => {
+    await supabase.auth.signOut();
+    location.reload();
+  };
+
+  async function showApp() {
+    $("loginView").style.display = "none";
+    $("appView").style.display = "block";
+    $("whoami").textContent = currentUser.email;
+    await loadKeys();
+    await loadUsers();
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  function formatDate(iso) {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  // Pre-fill saved project settings.
+  const savedUrl = localStorage.getItem(LS_URL);
+  const savedKey = localStorage.getItem(LS_KEY);
+  if (savedUrl) $("supabaseUrl").value = savedUrl;
+  if (savedKey) $("supabaseAnonKey").value = savedKey;
+})();
+</script>
+
+</body>
+</html>
