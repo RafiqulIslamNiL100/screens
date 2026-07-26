@@ -1,59 +1,68 @@
 # Setup
 
-## 1. Create the Supabase project
+## Status: project connected, schema not yet applied
 
-Screens ships with **no live backend configured** — `appsettings.json` and
-`admin.html` both need to point at a Supabase project you create yourself.
+`appsettings.json` already points at the live project
+`https://gyedrlhxyzdjjanvbmvw.supabase.co` with its anon key wired in — that
+part is done and committed. What's **not** done, and can't be done from this
+build environment (its network policy blocks `*.supabase.co` outbound), is
+running the schema. **You need to do steps 1 and 2 below once, by hand, in
+the Supabase dashboard** — everything else already works.
 
-1. Go to https://supabase.com and create a new project (free tier is fine).
-   Use a **new** project — do not reuse another app's project.
-2. In the SQL editor, run the contents of [`/db/schema.sql`](../db/schema.sql).
+## 1. Run the schema
+
+1. Open your project's SQL editor: https://supabase.com/dashboard/project/gyedrlhxyzdjjanvbmvw/sql/new
+2. Paste in the full contents of [`/db/schema.sql`](../db/schema.sql) and run it.
    This creates `license_keys`, `admins`, RLS policies, and the `redeem_key`
-   RPC.
-3. In **Project Settings → API**, copy:
-   - **Project URL** (e.g. `https://xxxx.supabase.co`)
-   - **anon / public key** — this is safe to embed in the desktop app and
-     `admin.html`; it only works within the RLS policies in `schema.sql`.
-   - **Do not** copy the `service_role` key anywhere in this repo. It is
-     never used by the desktop app or the admin dashboard.
-4. In **Authentication → Providers**, email/password should already be
-   enabled by default. Decide whether to require email confirmation
-   (Authentication → Settings) — either works with the app's sign-up flow.
+   RPC. Safe to re-run — every statement uses `if not exists` / `create or
+   replace`.
+3. Under **Authentication → Providers**, email/password is enabled by
+   default — no change needed. Decide whether to require email confirmation
+   (Authentication → Settings); either setting works with the app's sign-up
+   flow.
 
-## 2. Wire the desktop app to your project
+## 2. Make yourself an admin
 
-Edit `src/Screens.App/appsettings.json`:
+1. Sign up once through the Screens app (or create the user directly under
+   **Authentication → Users** in the dashboard) using the email you want to
+   administer with.
+2. Copy that user's UUID from the Users table, then in the SQL editor:
+   ```sql
+   insert into public.admins (user_id) values ('<your-user-uuid>');
+   ```
+3. You can now sign in to `admin/admin.html` with that account.
 
+## Credentials already wired in
+
+`src/Screens.App/appsettings.json`:
 ```json
 {
   "Supabase": {
-    "Url": "https://xxxx.supabase.co",
-    "AnonKey": "<your anon key>"
+    "Url": "https://gyedrlhxyzdjjanvbmvw.supabase.co",
+    "AnonKey": "eyJhbGciOi..."
   }
 }
 ```
+The anon key is safe to commit — it's public by design and only works within
+the RLS policies in `schema.sql`. The `service_role` key was **not** put
+anywhere in either repo, per spec — it must never appear in the desktop app
+or in `admin.html`.
 
-Until this is filled in, the app runs but shows "Screens is not connected to
-a Supabase project yet" on sign-in instead of crashing.
+Until schema.sql has been run (step 1), sign-up/sign-in in the app will fail
+with Postgres/GoTrue errors about missing tables — that's expected until you
+complete step 1, not a bug.
 
-## 3. Make yourself an admin
-
-After signing up once through the app (or through Supabase's own dashboard
-under **Authentication → Users**), find your user's UUID and run in the SQL
-editor:
-
-```sql
-insert into public.admins (user_id) values ('<your-user-uuid>');
-```
-
-## 4. Run the admin dashboard
+## 3. Run the admin dashboard
 
 `admin/admin.html` is a single self-contained file — no build step.
 
 1. Download it (or open it straight from this repo checkout).
 2. Double-click to open it in a browser.
-3. On first run, paste your Supabase **Project URL** and **anon key** into
-   the two fields on the sign-in card, along with your admin email/password.
+3. On first run, paste in:
+   - Project URL: `https://gyedrlhxyzdjjanvbmvw.supabase.co`
+   - Anon key: see `appsettings.json` (same value, safe to reuse — it's the
+     public key)
+   - Your admin email/password (from step 2 above)
    These are saved in `localStorage` in that browser only — nothing is sent
    anywhere except your own Supabase project.
 4. Generate keys, revoke/restore them, and see which users have redeemed
@@ -62,7 +71,7 @@ insert into public.admins (user_id) values ('<your-user-uuid>');
 The same `admin.html` is also published to the release repo
 (`screens-fnl-app`) so it can be downloaded without cloning this repo.
 
-## 5. Generate a key and activate the app
+## 4. Generate a key and activate the app
 
 1. In `admin.html`, generate at least one key.
 2. Sign up in the Screens app (Sign Up on the auth screen).
