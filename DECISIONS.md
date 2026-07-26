@@ -20,6 +20,17 @@ All 8 bundled template background images are generated procedurally (gradients, 
 ## Update checker HTTP client
 `UpdateService` uses `HttpClient` with a pinned `User-Agent` and downloads to `%TEMP%\Screens-Update-<version>.exe`; SHA-256 is computed with `System.Security.Cryptography.SHA256` before launch.
 
+## Rendering backend
+`Program.cs` configures Avalonia's Win32 backend with `RenderingMode = [Software]`
+instead of the default hardware/ANGLE path. During Wine+Xvfb acceptance
+testing the default path produced a fully black window (CoreCLR and the
+Win32 message loop both ran fine — DXGI/ANGLE just never actually painted
+anything under Wine's software GL). Skia's CPU rasterizer is fast enough for
+this app's 2D UI and fixes the black-window failure mode on any machine
+whose GPU/driver can't satisfy the hardware path (Wine, some RDP sessions,
+older integrated GPUs) without penalizing normal hardware — there is nothing
+GPU-bound about this UI.
+
 ## Icon set
 Icons are hand-authored `Avalonia.Media.Geometry` path data (stroke-only, 1.5px weight, 2px corner radius) rather than an icon font or SVG asset pipeline, to avoid pulling in an SVG renderer dependency.
 
