@@ -237,6 +237,18 @@
         </table>
       </div>
     </div>
+
+    <div class="card">
+      <h2>Usage (last 14 days)</h2>
+      <p class="muted" style="margin-top:-6px; margin-bottom:12px;">
+        Computed from key generation/redemption timestamps already on this page — no separate tracking.
+      </p>
+      <div id="statsChart" style="display:flex; align-items:flex-end; gap:6px; height:120px; padding:8px 0;"></div>
+      <div class="row" style="margin-top:8px;">
+        <span class="muted"><span class="badge active" style="margin-right:6px;">&nbsp;</span>Generated</span>
+        <span class="muted"><span class="badge" style="background:rgba(124,58,237,.2); color:var(--primary); margin-right:6px;">&nbsp;</span>Redeemed</span>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -361,6 +373,7 @@
     if (error) { toast("Failed to load keys: " + error.message); return; }
     allKeys = data || [];
     renderKeys();
+    renderStats();
   }
 
   function renderKeys() {
@@ -444,6 +457,53 @@
         <td class="muted">${k.expires_at ? formatDate(k.expires_at) : "Never"}</td>
       `;
       tbody.appendChild(tr);
+    }
+  }
+
+  // ---- Usage stats (derived from allKeys, no separate tracking) --------
+  function renderStats() {
+    const days = 14;
+    const buckets = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      d.setHours(0, 0, 0, 0);
+      buckets.push({ date: d, generated: 0, redeemed: 0 });
+    }
+    const bucketFor = (iso) => {
+      if (!iso) return null;
+      const d = new Date(iso);
+      d.setHours(0, 0, 0, 0);
+      return buckets.find((b) => b.date.getTime() === d.getTime());
+    };
+    for (const k of allKeys) {
+      const g = bucketFor(k.created_at);
+      if (g) g.generated++;
+      const r = bucketFor(k.redeemed_at);
+      if (r) r.redeemed++;
+    }
+
+    const max = Math.max(1, ...buckets.map((b) => Math.max(b.generated, b.redeemed)));
+    const chart = $("statsChart");
+    chart.innerHTML = "";
+    for (const b of buckets) {
+      const col = document.createElement("div");
+      col.style.cssText = "display:flex; flex-direction:column-reverse; align-items:center; gap:2px; flex:1; height:100%;";
+      const bars = document.createElement("div");
+      bars.style.cssText = "display:flex; gap:2px; align-items:flex-end; height:96px;";
+      const genBar = document.createElement("div");
+      genBar.title = `${b.date.toLocaleDateString()}: ${b.generated} generated`;
+      genBar.style.cssText = `width:8px; height:${(b.generated / max) * 96}px; background:var(--success); border-radius:2px 2px 0 0;`;
+      const redBar = document.createElement("div");
+      redBar.title = `${b.date.toLocaleDateString()}: ${b.redeemed} redeemed`;
+      redBar.style.cssText = `width:8px; height:${(b.redeemed / max) * 96}px; background:var(--primary); border-radius:2px 2px 0 0;`;
+      bars.append(genBar, redBar);
+      const label = document.createElement("span");
+      label.className = "muted";
+      label.style.fontSize = "10px";
+      label.textContent = b.date.toLocaleDateString(undefined, { day: "numeric" });
+      col.append(bars, label);
+      chart.appendChild(col);
     }
   }
 

@@ -40,6 +40,8 @@ public sealed class FieldFont
 public sealed class TemplateField
 {
     [JsonPropertyName("id")] public string Id { get; set; } = "";
+    /// <summary>"text" (default) or "qr" — a QR code rendered to fill the box instead of drawn text.</summary>
+    [JsonPropertyName("type")] public string Type { get; set; } = "text";
     [JsonPropertyName("label")] public string Label { get; set; } = "";
     [JsonPropertyName("default")] public string Default { get; set; } = "";
     [JsonPropertyName("placeholder")] public string Placeholder { get; set; } = "";
@@ -56,4 +58,11 @@ public sealed class TemplateField
     [JsonPropertyName("autoShrink")] public bool AutoShrink { get; set; } = true;
     [JsonPropertyName("userEditableColor")] public bool UserEditableColor { get; set; }
     [JsonPropertyName("userEditableSize")] public bool UserEditableSize { get; set; }
+    [JsonPropertyName("opacity")] public double Opacity { get; set; } = 1.0;
+    [JsonPropertyName("shadow")] public bool Shadow { get; set; }
+
+    /// <summary>Runtime-only overrides (drag-to-reposition, per-field color/size pickers). Never
+    /// written back to the manifest file — these reset when the app restarts or the template reloads.</summary>
+    [JsonIgnore] public string? RuntimeColorOverride { get; set; }
+    [JsonIgnore] public double? RuntimeSizeOverride { get; set; }
 }

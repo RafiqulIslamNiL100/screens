@@ -9,6 +9,7 @@ namespace Screens.App.ViewModels;
 public partial class AuthViewModel : ViewModelBase
 {
     private readonly AuthService _auth;
+    public LocalizationService Loc { get; }
 
     [ObservableProperty] private bool _isSignUpMode;
     [ObservableProperty] private string _email = "";
@@ -18,11 +19,18 @@ public partial class AuthViewModel : ViewModelBase
 
     public event EventHandler? Authenticated;
 
-    public AuthViewModel(AuthService auth) => _auth = auth;
+    public AuthViewModel(AuthService auth, LocalizationService loc)
+    {
+        _auth = auth;
+        Loc = loc;
+        Loc.LanguageChanged += () => OnPropertyChanged(string.Empty);
+    }
 
-    public string HeadingText => IsSignUpMode ? "Create your account" : "Sign in";
-    public string SubmitText => IsSignUpMode ? "Sign up" : "Sign in";
-    public string ToggleText => IsSignUpMode ? "Already have an account? Sign in" : "New here? Create an account";
+    public string HeadingText => IsSignUpMode ? Loc.T("Auth.SignUpHeading") : Loc.T("Auth.SignInHeading");
+    public string SubmitText => IsSignUpMode ? Loc.T("Auth.SignUp") : Loc.T("Auth.SignIn");
+    public string ToggleText => IsSignUpMode ? Loc.T("Auth.ToggleToSignIn") : Loc.T("Auth.ToggleToSignUp");
+    public string EmailLabel => Loc.T("Auth.Email");
+    public string PasswordLabel => Loc.T("Auth.Password");
 
     [RelayCommand]
     private void ToggleMode()

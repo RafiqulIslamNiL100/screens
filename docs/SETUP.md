@@ -44,9 +44,18 @@ screen.
   "Supabase": {
     "Url": "https://gyedrlhxyzdjjanvbmvw.supabase.co",
     "AnonKey": "eyJhbGciOi..."
+  },
+  "Update": {
+    "VersionJsonUrl": "...",
+    "RenewUrl": "https://github.com/RafiqulIslamNiL100/screens-fnl-app"
   }
 }
 ```
+`Update.RenewUrl` is where Settings' "Renew license" button (shown once a
+license has 7 or fewer days left) sends the user — currently a placeholder
+pointing at the release repo; point it at a real purchase/renewal page
+whenever you have one.
+
 The anon key is safe to commit — it's public by design and only works within
 the RLS policies in `schema.sql`. The `service_role` key was **not** put
 anywhere in either repo — it must never appear in the desktop app or in

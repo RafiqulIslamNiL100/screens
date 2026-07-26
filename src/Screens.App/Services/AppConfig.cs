@@ -9,6 +9,7 @@ public sealed class AppConfig
     public string SupabaseUrl { get; init; } = "";
     public string SupabaseAnonKey { get; init; } = "";
     public string VersionJsonUrl { get; init; } = "";
+    public string RenewUrl { get; init; } = "";
 
     public bool IsSupabaseConfigured =>
         !string.IsNullOrWhiteSpace(SupabaseUrl) &&
@@ -32,6 +33,7 @@ public sealed class AppConfig
             SupabaseUrl = supabase.ValueKind == JsonValueKind.Object && supabase.TryGetProperty("Url", out var url) ? url.GetString() ?? "" : "",
             SupabaseAnonKey = supabase.ValueKind == JsonValueKind.Object && supabase.TryGetProperty("AnonKey", out var key) ? key.GetString() ?? "" : "",
             VersionJsonUrl = update.ValueKind == JsonValueKind.Object && update.TryGetProperty("VersionJsonUrl", out var vurl) ? vurl.GetString() ?? "" : "",
+            RenewUrl = update.ValueKind == JsonValueKind.Object && update.TryGetProperty("RenewUrl", out var rurl) ? rurl.GetString() ?? "" : "",
         };
     }
 }

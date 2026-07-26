@@ -6,6 +6,10 @@
              x:Class="Screens.App.Views.MainView"
              x:DataType="vm:MainViewModel">
 
+  <UserControl.KeyBindings>
+    <KeyBinding Gesture="Ctrl+K" Command="{Binding OpenCommandPaletteCommand}"/>
+  </UserControl.KeyBindings>
+
   <Panel Background="{DynamicResource BrushSurface}">
     <DockPanel LastChildFill="True">
 
@@ -21,20 +25,38 @@
 
       <!-- Top toolbar -->
       <Border DockPanel.Dock="Top" Padding="16,10" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0,0,0,1">
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto">
           <TextBlock Grid.Column="0" Text="Screens" FontWeight="Bold" FontSize="18" VerticalAlignment="Center"/>
-          <Button Grid.Column="2" Content="Zoom to fit / 100%" Command="{Binding ToggleZoomCommand}" Classes="secondary" Margin="0,0,8,0"/>
-          <Button Grid.Column="3" Content="Export (Ctrl+E)" Command="{Binding ExportCommand}" Classes="primary" Margin="0,0,8,0"
+          <Button Grid.Column="2" Content="{Binding ZoomToggleLabel}" Command="{Binding ToggleZoomCommand}" Classes="secondary" Margin="0,0,8,0"/>
+          <Button Grid.Column="3" Content="Copy" Command="{Binding ExportToClipboardCommand}" Classes="secondary" Margin="0,0,8,0"
+                  ToolTip.Tip="Copy the current export to the clipboard"/>
+          <Button Grid.Column="4" Content="All formats" Command="{Binding ExportAllFormatsCommand}" Classes="secondary" Margin="0,0,8,0"
+                  ToolTip.Tip="Export PNG + JPG + PDF at once"/>
+          <Button Grid.Column="5" Content="{Binding ExportLabel}" Command="{Binding ExportCommand}" Classes="primary" Margin="0,0,8,0"
                   HotKey="Ctrl+E"/>
-          <Button Grid.Column="4" Content="Settings" Command="{Binding ToggleSettingsCommand}" Classes="secondary"/>
+          <Button Grid.Column="6" Content="{Binding SettingsLabel}" Command="{Binding ToggleSettingsCommand}" Classes="secondary"/>
         </Grid>
       </Border>
 
-      <Grid ColumnDefinitions="260,*,340">
+      <Grid ColumnDefinitions="260,*,360">
 
         <!-- Template gallery -->
         <ScrollViewer Grid.Column="0" Padding="12">
           <StackPanel Spacing="8">
+            <TextBox Text="{Binding SearchText, Mode=TwoWay}" Watermark="{Binding SearchPlaceholder}" Margin="0,0,0,4"/>
+
+            <ItemsControl ItemsSource="{Binding RecentTemplates}" IsVisible="{Binding RecentTemplates.Count}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="models:TemplateManifest">
+                  <Border Classes="card" Margin="0,0,0,6" Padding="8"
+                          PointerPressed="OnTemplateTilePressed" Tag="{Binding}">
+                    <TextBlock Text="{Binding Name}" Classes="muted" TextTrimming="CharacterEllipsis"/>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Border Height="1" Background="{DynamicResource BrushBorder}" Margin="0,4,0,8" IsVisible="{Binding RecentTemplates.Count}"/>
+
             <ItemsControl ItemsSource="{Binding Templates}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="models:TemplateManifest">
@@ -59,22 +81,47 @@
           </StackPanel>
         </ScrollViewer>
 
-        <!-- Canvas preview -->
+        <!-- Canvas preview, with a session-only drag-to-reposition overlay
+             aligned in the same coordinate space as the template (a Viewbox
+             wrapping both the image and the overlay keeps them in sync at
+             any zoom level without separate scale math). -->
         <Border Grid.Column="1" Background="{DynamicResource BrushSurfaceElevated}" Margin="0" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1,0">
           <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-            <Image x:Name="PreviewImageControl" Source="{Binding PreviewImage}" Margin="24"
-                   Stretch="{Binding ZoomToFit, Converter={x:Static conv:BoolToStretchConverter.Instance}}"/>
+            <Viewbox Stretch="{Binding ZoomToFit, Converter={x:Static conv:BoolToStretchConverter.Instance}}" Margin="24"
+                     IsVisible="{Binding SelectedTemplate, Converter={x:Static ObjectConverters.IsNotNull}}">
+              <Panel Width="{Binding SelectedTemplate.Canvas.Width}" Height="{Binding SelectedTemplate.Canvas.Height}">
+                <Image x:Name="PreviewImageControl" Source="{Binding PreviewImage}"
+                       Width="{Binding SelectedTemplate.Canvas.Width}" Height="{Binding SelectedTemplate.Canvas.Height}"/>
+                <ItemsControl ItemsSource="{Binding Fields}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:FieldEditorItemViewModel">
+                      <Border Canvas.Left="{Binding Field.Box.X}" Canvas.Top="{Binding Field.Box.Y}"
+                              Width="{Binding Field.Box.Width}" Height="{Binding Field.Box.Height}"
+                              Background="Transparent" BorderBrush="#557C3AED" BorderThickness="1" CornerRadius="2"
+                              Cursor="SizeAll" Tag="{Binding}"
+                              PointerPressed="OnFieldDragStart" PointerMoved="OnFieldDragMove" PointerReleased="OnFieldDragEnd"/>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </Panel>
+            </Viewbox>
           </ScrollViewer>
         </Border>
 
         <!-- Field editor -->
         <ScrollViewer Grid.Column="2" Padding="16">
           <StackPanel Spacing="16">
-            <Grid ColumnDefinitions="*,Auto,Auto">
-              <TextBlock Grid.Column="0" Text="Fields" FontWeight="Bold" VerticalAlignment="Center"/>
-              <Button Grid.Column="1" Content="Reset" Command="{Binding ResetToDefaultsCommand}" Classes="secondary" Margin="0,0,6,0"/>
-              <Button Grid.Column="2" Content="Clear all" Command="{Binding ClearAllCommand}" Classes="secondary"/>
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+              <TextBlock Grid.Column="0" Text="{Binding FieldsLabel}" FontWeight="Bold" VerticalAlignment="Center"/>
+              <Button Grid.Column="1" Content="{Binding DuplicateLabel}" Command="{Binding DuplicateTemplateCommand}" Classes="secondary" Margin="0,0,6,0"/>
+              <Button Grid.Column="2" Content="{Binding ResetLabel}" Command="{Binding ResetToDefaultsCommand}" Classes="secondary" Margin="0,0,6,0"/>
+              <Button Grid.Column="3" Content="{Binding ClearAllLabel}" Command="{Binding ClearAllCommand}" Classes="secondary"/>
             </Grid>
+
+            <CheckBox Content="Snap to grid while dragging" IsChecked="{Binding SnapToGridEnabled, Mode=TwoWay}"/>
 
             <ItemsControl ItemsSource="{Binding Fields}">
               <ItemsControl.ItemTemplate>
@@ -83,7 +130,18 @@
                     <TextBlock Text="{Binding Field.Label}" Classes="muted"/>
                     <TextBox Text="{Binding Value, Mode=TwoWay}" Watermark="{Binding Field.Placeholder}"
                               AcceptsReturn="{Binding Field.Multiline}" TextWrapping="Wrap"/>
-                    <TextBlock Text="{Binding CounterText}" Classes="muted" HorizontalAlignment="Right" IsVisible="{Binding HasMaxLength}"/>
+                    <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding !IsQr}">
+                      <TextBlock Grid.Column="0" Text="Will shrink to fit" Classes="muted" Foreground="{DynamicResource BrushPrimaryLight}" IsVisible="{Binding WillShrink}"/>
+                      <TextBlock Grid.Column="1" Text="{Binding CounterText}" Classes="muted" HorizontalAlignment="Right" IsVisible="{Binding HasMaxLength}"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,Auto" IsVisible="{Binding ShowColorPicker}" Margin="0,4,0,0">
+                      <TextBlock Grid.Column="0" Text="Color" Classes="muted" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                      <TextBox Grid.Column="1" Text="{Binding ColorOverride, Mode=TwoWay}" Width="110" FontFamily="Consolas,monospace"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*" IsVisible="{Binding ShowSizePicker}" Margin="0,4,0,0">
+                      <TextBlock Grid.Column="0" Text="Size" Classes="muted" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                      <Slider Grid.Column="1" Minimum="8" Maximum="200" Value="{Binding SizeOverride, Mode=TwoWay}"/>
+                    </Grid>
                   </StackPanel>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
@@ -97,27 +155,89 @@
     <Border Classes="toast" IsVisible="{Binding ShowToast}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,24">
       <StackPanel Orientation="Horizontal" Spacing="12">
         <TextBlock Text="{Binding ToastMessage}" VerticalAlignment="Center"/>
-        <Button Content="Open folder" Classes="secondary" Click="OnOpenFolderClicked"/>
+        <Button Content="{Binding OpenFolderLabel}" Classes="secondary" Click="OnOpenFolderClicked"/>
         <Button Content="✕" Classes="icon" Command="{Binding DismissToastCommand}"/>
       </StackPanel>
     </Border>
 
+    <!-- Command palette (Ctrl+K) -->
+    <Border Background="{DynamicResource BrushOverlay}" IsVisible="{Binding ShowCommandPalette}" PointerPressed="OnCommandPaletteBackdropPressed">
+      <Border Classes="card" Width="480" Padding="12" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,120,0,0">
+        <StackPanel Spacing="8">
+          <TextBox x:Name="CommandPaletteInput" Text="{Binding CommandPaletteQuery, Mode=TwoWay}" Watermark="{Binding CommandPalettePlaceholder}"/>
+          <ItemsControl ItemsSource="{Binding FilteredCommandPaletteItems}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:CommandPaletteItem">
+                <Button Classes="secondary" Content="{Binding Label}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                        Margin="0,2" Command="{Binding $parent[ItemsControl].((vm:MainViewModel)DataContext).RunCommandPaletteItemCommand}"
+                        CommandParameter="{Binding}"/>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </Border>
+
     <!-- Settings / About overlay -->
     <Border Background="{DynamicResource BrushOverlay}" IsVisible="{Binding ShowSettings}">
-      <Border Classes="card" Width="420" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center">
+      <Border Classes="card" Width="440" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <ScrollViewer MaxHeight="600">
         <StackPanel Spacing="16">
           <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Grid.Column="0" Text="Settings &amp; About" FontWeight="Bold" FontSize="18"/>
+            <TextBlock Grid.Column="0" Text="{Binding SettingsTitleLabel}" FontWeight="Bold" FontSize="18"/>
             <Button Grid.Column="1" Content="✕" Classes="icon" Command="{Binding ToggleSettingsCommand}"/>
           </Grid>
 
           <StackPanel Spacing="6">
-            <TextBlock Text="Theme" Classes="muted"/>
+            <TextBlock Text="{Binding ThemeLabel}" Classes="muted"/>
             <StackPanel Orientation="Horizontal" Spacing="8">
               <Button Content="Light" Classes="secondary" Click="OnThemeLightClicked"/>
               <Button Content="Dark" Classes="secondary" Click="OnThemeDarkClicked"/>
               <Button Content="System" Classes="secondary" Click="OnThemeSystemClicked"/>
             </StackPanel>
+          </StackPanel>
+
+          <StackPanel Spacing="6">
+            <TextBlock Text="{Binding LanguageLabel}" Classes="muted"/>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Content="English" Classes="secondary" Click="OnLanguageEnglishClicked"/>
+              <Button Content="中文" Classes="secondary" Click="OnLanguageChineseClicked"/>
+            </StackPanel>
+          </StackPanel>
+
+          <CheckBox Content="{Binding WatermarkLabel}" IsChecked="{Binding WatermarkEnabled, Mode=TwoWay}"/>
+
+          <StackPanel Spacing="6">
+            <TextBlock Text="{Binding ExportPresetsLabel}" Classes="muted"/>
+            <ItemsControl ItemsSource="{Binding ExportPresets}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,2">
+                    <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center"/>
+                    <Button Grid.Column="1" Content="Export" Classes="secondary" Margin="0,0,6,0"
+                            Command="{Binding $parent[ItemsControl].((vm:MainViewModel)DataContext).ExportWithPresetCommand}"
+                            CommandParameter="{Binding}"/>
+                    <Button Grid.Column="2" Content="✕" Classes="icon"
+                            Command="{Binding $parent[ItemsControl].((vm:MainViewModel)DataContext).RemoveExportPresetCommand}"
+                            CommandParameter="{Binding}"/>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Grid ColumnDefinitions="*,Auto,Auto">
+              <TextBox Grid.Column="0" Text="{Binding NewPresetName, Mode=TwoWay}" Watermark="Preset name" Margin="0,0,6,0"/>
+              <ComboBox Grid.Column="1" SelectedItem="{Binding NewPresetFormat, Mode=TwoWay}" Margin="0,0,6,0">
+                <ComboBoxItem>png</ComboBoxItem>
+                <ComboBoxItem>jpg</ComboBoxItem>
+                <ComboBoxItem>pdf</ComboBoxItem>
+              </ComboBox>
+              <Button Grid.Column="2" Content="Add" Classes="secondary" Command="{Binding AddExportPresetCommand}"/>
+            </Grid>
+          </StackPanel>
+
+          <StackPanel Spacing="4">
+            <TextBlock Text="{Binding LicenseCountdownText}"/>
+            <Button Content="{Binding RenewLabel}" Classes="secondary" IsVisible="{Binding ShowRenewLink}" Click="OnRenewClicked" HorizontalAlignment="Left"/>
           </StackPanel>
 
           <StackPanel Spacing="4">
@@ -128,10 +248,11 @@
             <TextBlock Text="{Binding CheckForUpdatesResult}" Classes="secondary"/>
           </StackPanel>
 
-          <Button Content="Check for updates" Command="{Binding CheckForUpdatesManualCommand}" Classes="secondary" HorizontalAlignment="Left"/>
+          <Button Content="{Binding CheckForUpdatesLabel}" Command="{Binding CheckForUpdatesManualCommand}" Classes="secondary" HorizontalAlignment="Left"/>
 
-          <Button Content="Sign out" Classes="secondary" Click="OnSignOutClicked" HorizontalAlignment="Left"/>
+          <Button Content="{Binding SignOutLabel}" Classes="secondary" Click="OnSignOutClicked" HorizontalAlignment="Left"/>
         </StackPanel>
+        </ScrollViewer>
       </Border>
     </Border>
   </Panel>

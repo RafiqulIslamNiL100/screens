@@ -1,7 +1,7 @@
 {
-  "version": "1.0.3",
-  "notes": "Fixed the app getting stuck on the splash screen after sign-up when the license check failed (e.g. schema not yet applied).",
-  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.0.3.exe",
-  "sha256": "f142df1d407c57131473338567717729cb233a07b101e6571f25272cf7ccdf74",
+  "version": "1.1.0",
+  "notes": "Big feature update: English/Chinese UI, drag-to-reposition with grid snap, QR code fields, PNG/JPG/PDF export + presets, clipboard export, watermark, autosave drafts, recent templates, template search + duplicate, command palette (Ctrl+K), system tray quick-export, license countdown/renewal, and usage stats in admin.html.",
+  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.1.0.exe",
+  "sha256": "ce11390d26984982c308bcde0331eaaaadd40095ccbc346bccc95b91fe67dc89",
   "mandatory": false
 }

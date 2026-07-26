@@ -11,6 +11,7 @@ namespace Screens.App.ViewModels;
 public partial class ActivationViewModel : ViewModelBase
 {
     private readonly LicenseService _license;
+    public LocalizationService Loc { get; }
 
     [ObservableProperty] private string _keyInput = "";
     [ObservableProperty] private string? _errorMessage;
@@ -18,7 +19,12 @@ public partial class ActivationViewModel : ViewModelBase
 
     public event EventHandler? Activated;
 
-    public ActivationViewModel(LicenseService license) => _license = license;
+    public ActivationViewModel(LicenseService license, LocalizationService loc)
+    {
+        _license = license;
+        Loc = loc;
+        Loc.LanguageChanged += () => OnPropertyChanged(string.Empty);
+    }
 
     partial void OnKeyInputChanged(string value)
     {
@@ -51,6 +57,10 @@ public partial class ActivationViewModel : ViewModelBase
         }
         return result.ToString();
     }
+
+    public string TitleLabel => Loc.T("Activation.Title");
+    public string SubtitleLabel => Loc.T("Activation.Subtitle");
+    public string ActivateLabel => Loc.T("Activation.Activate");
 
     private bool CanActivate() => !IsBusy && KeyInput.Length == 19; // XXXX-XXXX-XXXX-XXXX
 

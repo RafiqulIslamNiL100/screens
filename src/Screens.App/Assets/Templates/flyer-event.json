@@ -22,7 +22,8 @@
       "uppercase": false,
       "autoShrink": true,
       "userEditableColor": false,
-      "userEditableSize": false
+      "userEditableSize": false,
+      "shadow": true
     },
     {
       "id": "datetime",
@@ -78,6 +79,25 @@
       "letterSpacing": 0,
       "uppercase": true,
       "autoShrink": true,
+      "userEditableColor": true,
+      "userEditableSize": true
+    },
+    {
+      "id": "ticketLink",
+      "type": "qr",
+      "label": "Ticket / Info Link (QR)",
+      "default": "https://example.com/tickets",
+      "placeholder": "URL to encode",
+      "multiline": false,
+      "box": { "x": 1180, "y": 1880, "width": 180, "height": 180 },
+      "align": "left",
+      "verticalAlign": "top",
+      "font": { "family": "Inter", "size": 12, "weight": "Regular", "italic": false },
+      "color": "#000000",
+      "lineHeight": 1.0,
+      "letterSpacing": 0,
+      "uppercase": false,
+      "autoShrink": false,
       "userEditableColor": false,
       "userEditableSize": false
     }

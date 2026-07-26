@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Versioning;
 using System.Security.Cryptography;
@@ -11,10 +12,25 @@ namespace Screens.App.Services;
 
 public enum ThemePreference { Light, Dark, System }
 
+public sealed class ExportPreset
+{
+    public string Name { get; set; } = "";
+    public string Format { get; set; } = "png"; // png | jpg | pdf
+    public string? Folder { get; set; } // null = default Pictures\Screens
+}
+
 public sealed class AppSettings
 {
     public ThemePreference Theme { get; set; } = ThemePreference.System;
+    public AppLanguage Language { get; set; } = AppLanguage.English;
     public string? LastTemplateId { get; set; }
+    /// <summary>Most-recently-used template ids, newest first, capped at 8.</summary>
+    public List<string> RecentTemplateIds { get; set; } = new();
+    /// <summary>Per-template field values, so in-progress edits survive an app restart.</summary>
+    public Dictionary<string, Dictionary<string, string>> Drafts { get; set; } = new();
+    public List<ExportPreset> ExportPresets { get; set; } = new();
+    public bool WatermarkEnabled { get; set; }
+    public bool SnapToGridEnabled { get; set; } = true;
 }
 
 /// <summary>

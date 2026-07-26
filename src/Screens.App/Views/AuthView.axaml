@@ -11,12 +11,12 @@
         <TextBlock Text="{Binding HeadingText}" Classes="secondary" HorizontalAlignment="Center"/>
 
         <StackPanel Spacing="6">
-          <TextBlock Text="Email" Classes="muted"/>
+          <TextBlock Text="{Binding EmailLabel}" Classes="muted"/>
           <TextBox Text="{Binding Email, Mode=TwoWay}" Watermark="you@example.com"/>
         </StackPanel>
 
         <StackPanel Spacing="6">
-          <TextBlock Text="Password" Classes="muted"/>
+          <TextBlock Text="{Binding PasswordLabel}" Classes="muted"/>
           <TextBox Text="{Binding Password, Mode=TwoWay}" PasswordChar="•" Watermark="At least 6 characters"/>
         </StackPanel>
 

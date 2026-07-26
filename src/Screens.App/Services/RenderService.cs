@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using SkiaSharp;
+using QRCoder;
 using Screens.App.Models;
 
 namespace Screens.App.Services;
@@ -18,7 +19,7 @@ public sealed class RenderService
 
     public RenderService(FontRegistry fonts) => _fonts = fonts;
 
-    public SKBitmap Render(TemplateManifest manifest, IReadOnlyDictionary<string, string> values)
+    public SKBitmap Render(TemplateManifest manifest, IReadOnlyDictionary<string, string> values, bool watermark = false)
     {
         var imagePath = Path.Combine(manifest.SourceDirectory ?? "", manifest.Image);
         using var background = SKBitmap.Decode(imagePath)
@@ -34,10 +35,18 @@ public sealed class RenderService
             foreach (var field in manifest.Fields)
             {
                 var text = values.TryGetValue(field.Id, out var v) ? v : field.Default;
+                if (field.Type == "qr")
+                {
+                    DrawQr(canvas, field, text);
+                    continue;
+                }
                 if (field.Uppercase)
                     text = text.ToUpperInvariant();
                 DrawField(canvas, field, text);
             }
+
+            if (watermark)
+                DrawWatermark(canvas, manifest.Canvas.Width, manifest.Canvas.Height);
         }
 
         return bitmap;
@@ -46,6 +55,12 @@ public sealed class RenderService
     /// <summary>Encodes at full canvas resolution — never a screenshot of the on-screen preview.</summary>
     public void Export(SKBitmap bitmap, string path, ExportFormat format)
     {
+        if (format == ExportFormat.Pdf)
+        {
+            ExportPdf(bitmap, path);
+            return;
+        }
+
         using var image = SKImage.FromBitmap(bitmap);
         using var data = format switch
         {
@@ -56,13 +71,75 @@ public sealed class RenderService
         data.SaveTo(stream);
     }
 
+    private static void ExportPdf(SKBitmap bitmap, string path)
+    {
+        using var stream = new SKFileWStream(path);
+        using var document = SKDocument.CreatePdf(stream);
+        // One page sized to the image, at 72 DPI-equivalent points per pixel
+        // scaled down so print output isn't absurdly large — full pixel
+        // fidelity is preserved regardless since we draw the source bitmap
+        // at native resolution into that page rect.
+        var pageWidth = bitmap.Width * 72f / 150f;
+        var pageHeight = bitmap.Height * 72f / 150f;
+        using (var pageCanvas = document.BeginPage(pageWidth, pageHeight))
+        {
+            pageCanvas.DrawBitmap(bitmap, new SKRect(0, 0, pageWidth, pageHeight));
+        }
+        document.EndPage();
+        document.Close();
+    }
+
+    private static void DrawWatermark(SKCanvas canvas, int width, int height)
+    {
+        const string text = "Made with Screens";
+        using var paint = new SKPaint
+        {
+            IsAntialias = true,
+            Color = new SKColor(255, 255, 255, 160),
+            TextSize = Math.Max(16, width * 0.016f),
+            Typeface = SKTypeface.FromFamilyName("Arial", SKFontStyleWeight.SemiBold, SKFontStyleWidth.Normal, SKFontStyleSlant.Upright),
+        };
+        var textWidth = paint.MeasureText(text);
+        var x = width - textWidth - 24;
+        var y = height - 24;
+
+        using var shadowPaint = new SKPaint { IsAntialias = true, Color = new SKColor(0, 0, 0, 90), TextSize = paint.TextSize, Typeface = paint.Typeface };
+        canvas.DrawText(text, x + 1, y + 1, shadowPaint);
+        canvas.DrawText(text, x, y, paint);
+    }
+
+    private void DrawQr(SKCanvas canvas, TemplateField field, string content)
+    {
+        var box = new SKRect(
+            (float)field.Box.X, (float)field.Box.Y,
+            (float)(field.Box.X + field.Box.Width), (float)(field.Box.Y + field.Box.Height));
+
+        if (string.IsNullOrWhiteSpace(content))
+            return;
+
+        using var generator = new QRCodeGenerator();
+        using var qrData = generator.CreateQrCode(content, QRCodeGenerator.ECCLevel.M);
+        var pngQr = new PngByteQRCode(qrData);
+        var size = (int)Math.Max(1, Math.Min(box.Width, box.Height));
+        var pngBytes = pngQr.GetGraphic(Math.Max(1, size / 33)); // ~33 modules across a typical QR; pixelsPerModule scales output near the box size
+        using var qrBitmap = SKBitmap.Decode(pngBytes);
+        if (qrBitmap is null)
+            return;
+
+        var dest = new SKRect(box.MidX - size / 2f, box.MidY - size / 2f, box.MidX + size / 2f, box.MidY + size / 2f);
+        canvas.DrawBitmap(qrBitmap, dest);
+    }
+
     private void DrawField(SKCanvas canvas, TemplateField field, string text)
     {
         var box = new SKRect(
             (float)field.Box.X, (float)field.Box.Y,
             (float)(field.Box.X + field.Box.Width), (float)(field.Box.Y + field.Box.Height));
 
-        var color = SKColor.Parse(field.Color);
+        var colorHex = field.RuntimeColorOverride ?? field.Color;
+        var color = SKColor.Parse(colorHex);
+        var alpha = (byte)(Math.Clamp(field.Opacity, 0.0, 1.0) * 255);
+        color = color.WithAlpha(alpha);
         var typeface = _fonts.Resolve(field.Font.Family, field.Font.Weight, field.Font.Italic);
 
         using var paint = new SKPaint
@@ -73,7 +150,7 @@ public sealed class RenderService
             TextAlign = SKTextAlign.Left,
         };
 
-        var fontSize = (float)field.Font.Size;
+        var fontSize = (float)(field.RuntimeSizeOverride ?? field.Font.Size);
         var minSize = fontSize * 0.5f;
 
         List<string> lines;
@@ -137,6 +214,19 @@ public sealed class RenderService
         canvas.Save();
         canvas.ClipRect(box);
 
+        SKPaint? shadowPaint = null;
+        if (field.Shadow)
+        {
+            shadowPaint = new SKPaint
+            {
+                IsAntialias = true,
+                Color = new SKColor(0, 0, 0, (byte)(alpha * 0.55)),
+                Typeface = typeface,
+                TextSize = fontSize,
+                TextAlign = SKTextAlign.Left,
+            };
+        }
+
         var metrics = paint.FontMetrics;
         float y = startY - metrics.Ascent + (finalLineHeight - fontSize) / 2f;
         foreach (var line in lines)
@@ -148,10 +238,13 @@ public sealed class RenderService
                 "right" => box.Right - lineWidth,
                 _ => box.Left,
             };
+            if (shadowPaint is not null)
+                canvas.DrawText(line, x + fontSize * 0.03f, y + fontSize * 0.05f, shadowPaint);
             canvas.DrawText(line, x, y, paint);
             y += finalLineHeight;
         }
 
+        shadowPaint?.Dispose();
         canvas.Restore();
     }
 

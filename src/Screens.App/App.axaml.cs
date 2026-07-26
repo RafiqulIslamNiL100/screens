@@ -24,11 +24,14 @@ public partial class App : Avalonia.Application
             var fonts = new FontRegistry();
             var render = new RenderService(fonts);
             var update = new UpdateService(config);
+            var loc = new LocalizationService();
 
-            var authVm = new AuthViewModel(auth);
-            var activationVm = new ActivationViewModel(license);
-            var mainVm = new MainViewModel(templates, render, settings, update, fonts);
+            var authVm = new AuthViewModel(auth, loc);
+            var activationVm = new ActivationViewModel(license, loc);
+            var mainVm = new MainViewModel(templates, render, settings, update, fonts, license, loc);
             var shellVm = new ShellViewModel(auth, license, authVm, activationVm, mainVm);
+
+            TrayIconController.Attach(this, mainVm);
 
             var appSettings = settings.Load();
             ApplyTheme(appSettings.Theme);

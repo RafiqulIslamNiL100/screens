@@ -9,6 +9,8 @@ public partial class FieldEditorItemViewModel : ViewModelBase
     public TemplateField Field { get; }
 
     [ObservableProperty] private string _value;
+    [ObservableProperty] private string _colorOverride;
+    [ObservableProperty] private double _sizeOverride;
 
     public event EventHandler? ValueChanged;
 
@@ -16,11 +18,39 @@ public partial class FieldEditorItemViewModel : ViewModelBase
     {
         Field = field;
         _value = field.Default;
+        _colorOverride = field.Color;
+        _sizeOverride = field.Font.Size;
     }
+
+    public bool IsQr => Field.Type == "qr";
+    public bool ShowColorPicker => Field.UserEditableColor && !IsQr;
+    public bool ShowSizePicker => Field.UserEditableSize && !IsQr;
 
     public int CharacterCount => Value.Length;
     public bool HasMaxLength => Field.MaxLength.HasValue;
     public string CounterText => Field.MaxLength.HasValue ? $"{Value.Length} / {Field.MaxLength.Value}" : "";
+
+    /// <summary>
+    /// Rough heuristic (not the render path itself — RenderService is the
+    /// single source of truth for actual shrinking) so the field editor can
+    /// warn before the user exports, not after.
+    /// </summary>
+    public bool WillShrink
+    {
+        get
+        {
+            if (IsQr || !Field.AutoShrink || Value.Length == 0)
+                return false;
+            var approxCharWidth = Field.Font.Size * 0.55;
+            var charsPerLine = Math.Max(1, (int)(Field.Box.Width / approxCharWidth));
+            if (!Field.Multiline)
+                return Value.Length > charsPerLine;
+
+            var lineCapacity = Math.Max(1, (int)(Field.Box.Height / (Field.Font.Size * Field.LineHeight)));
+            var estimatedLines = Math.Max(1, (int)Math.Ceiling((double)Value.Length / charsPerLine));
+            return estimatedLines > lineCapacity;
+        }
+    }
 
     partial void OnValueChanged(string value)
     {
@@ -31,12 +61,27 @@ public partial class FieldEditorItemViewModel : ViewModelBase
         }
         OnPropertyChanged(nameof(CharacterCount));
         OnPropertyChanged(nameof(CounterText));
+        OnPropertyChanged(nameof(WillShrink));
+        ValueChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    partial void OnColorOverrideChanged(string value)
+    {
+        Field.RuntimeColorOverride = string.IsNullOrWhiteSpace(value) ? null : value;
+        ValueChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    partial void OnSizeOverrideChanged(double value)
+    {
+        Field.RuntimeSizeOverride = value > 0 ? value : null;
         ValueChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void Reset()
     {
         Value = Field.Default;
+        ColorOverride = Field.Color;
+        SizeOverride = Field.Font.Size;
     }
 
     public void Clear()

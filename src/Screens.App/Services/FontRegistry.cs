@@ -5,7 +5,7 @@ using SkiaSharp;
 
 namespace Screens.App.Services;
 
-public enum ExportFormat { Png, Jpg }
+public enum ExportFormat { Png, Jpg, Pdf }
 
 /// <summary>
 /// Loads bundled OFL/Apache-licensed fonts once and resolves a manifest's
