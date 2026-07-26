@@ -57,7 +57,15 @@ public sealed class LicenseService : IDisposable
 
             if (response.IsSuccessStatusCode)
             {
-                State = new LicenseState { IsActive = true, Key = key, Status = "active", LastVerifiedAt = DateTimeOffset.UtcNow };
+                var redeemed = await response.Content.ReadFromJsonAsync<LicenseRow>(JsonOpts);
+                State = new LicenseState
+                {
+                    IsActive = true,
+                    Key = key,
+                    Status = "active",
+                    ExpiresAt = redeemed?.ExpiresAt,
+                    LastVerifiedAt = DateTimeOffset.UtcNow,
+                };
                 await _settings.SaveLicenseStateAsync(State);
                 StateChanged?.Invoke(State);
                 return RedeemOutcome.Success;
@@ -85,20 +93,22 @@ public sealed class LicenseService : IDisposable
 
         try
         {
-            var url = $"{_config.SupabaseUrl.TrimEnd('/')}/rest/v1/license_keys?assigned_user=eq.{_auth.CurrentSession.UserId}&select=key,status";
+            var url = $"{_config.SupabaseUrl.TrimEnd('/')}/rest/v1/license_keys?assigned_user=eq.{_auth.CurrentSession.UserId}&select=key,status,expires_at";
             var response = await _auth.Http.GetAsync(url);
             if (!response.IsSuccessStatusCode)
                 throw new HttpRequestException("license lookup failed");
 
             var rows = await response.Content.ReadFromJsonAsync<LicenseRow[]>(JsonOpts);
             var row = rows is { Length: > 0 } ? rows[0] : null;
+            var expired = row?.ExpiresAt is not null && row.ExpiresAt.Value <= DateTimeOffset.UtcNow;
 
             InOfflineGrace = false;
             State = new LicenseState
             {
-                IsActive = row?.Status == "active",
+                IsActive = row?.Status == "active" && !expired,
                 Key = row?.Key,
-                Status = row?.Status ?? "none",
+                Status = expired ? "expired" : (row?.Status ?? "none"),
+                ExpiresAt = row?.ExpiresAt,
                 LastVerifiedAt = DateTimeOffset.UtcNow,
             };
             await _settings.SaveLicenseStateAsync(State);
@@ -126,5 +136,6 @@ public sealed class LicenseService : IDisposable
     {
         [JsonPropertyName("key")] public string? Key { get; set; }
         [JsonPropertyName("status")] public string? Status { get; set; }
+        [JsonPropertyName("expires_at")] public DateTimeOffset? ExpiresAt { get; set; }
     }
 }

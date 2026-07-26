@@ -17,4 +17,6 @@ public sealed class LicenseState
     public string? Key { get; set; }
     public DateTimeOffset? LastVerifiedAt { get; set; }
     public string Status { get; set; } = "none"; // none | active | revoked
+    /// <summary>Null = lifetime key, never expires.</summary>
+    public DateTimeOffset? ExpiresAt { get; set; }
 }

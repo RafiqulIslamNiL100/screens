@@ -1,7 +1,7 @@
 {
-  "version": "1.0.0",
-  "notes": "Initial release of Screens.",
-  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.0.0.exe",
-  "sha256": "d59d896895e45f646d22ac7aa874a2b71a06a26981521c710747f6acceb65647",
+  "version": "1.0.1",
+  "notes": "Time-limited license keys (duration set at generation, expiry tracked per activation). Admin dashboard has no login.",
+  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.0.1.exe",
+  "sha256": "6ae514a54f472b87e06e21e51c827de2b5404cf0028fb949b0de023835e738bc",
   "mandatory": false
 }

@@ -158,6 +158,22 @@
           <label for="genCount">Batch size</label>
           <input id="genCount" type="number" min="1" max="500" value="10">
         </div>
+        <div>
+          <label for="genDuration">Duration</label>
+          <select id="genDuration">
+            <option value="7">1 week</option>
+            <option value="30" selected>1 month</option>
+            <option value="90">3 months</option>
+            <option value="180">6 months</option>
+            <option value="365">12 months</option>
+            <option value="">Lifetime (never expires)</option>
+            <option value="custom">Custom…</option>
+          </select>
+        </div>
+        <div id="genCustomDaysWrap" style="display:none;">
+          <label for="genCustomDays">Custom days</label>
+          <input id="genCustomDays" type="number" min="1" placeholder="e.g. 45">
+        </div>
         <div style="flex:2;">
           <label for="genNote">Note (optional)</label>
           <input id="genNote" placeholder="e.g. Reseller batch, Aug 2026">
@@ -166,6 +182,10 @@
           <button class="primary" id="genBtn">Generate</button>
         </div>
       </div>
+      <p class="muted" style="margin-top:8px;">
+        Duration is the activation window: it starts counting down from the moment a user
+        redeems the key, not from when it's generated here.
+      </p>
       <div id="genResultWrap" style="display:none; margin-top:14px;">
         <label>Generated keys</label>
         <textarea id="genResult" readonly></textarea>
@@ -200,7 +220,7 @@
         <table>
           <thead>
             <tr>
-              <th>Key</th><th>Status</th><th>Assigned user</th><th>Created</th><th>Redeemed</th><th>Note</th><th></th>
+              <th>Key</th><th>Status</th><th>Assigned user</th><th>Duration</th><th>Expires</th><th>Created</th><th>Redeemed</th><th>Note</th><th></th>
             </tr>
           </thead>
           <tbody id="keysBody"></tbody>
@@ -212,7 +232,7 @@
       <h2>Users</h2>
       <div style="overflow-x:auto;">
         <table>
-          <thead><tr><th>Email</th><th>Status</th><th>License key</th></tr></thead>
+          <thead><tr><th>User (id)</th><th>Status</th><th>License key</th><th>Expires</th></tr></thead>
           <tbody id="usersBody"></tbody>
         </table>
       </div>
@@ -278,14 +298,29 @@
     return [randomKeyGroup(4), randomKeyGroup(4), randomKeyGroup(4), randomKeyGroup(4)].join("-");
   }
 
+  $("genDuration").onchange = () => {
+    $("genCustomDaysWrap").style.display = $("genDuration").value === "custom" ? "block" : "none";
+  };
+
+  function selectedDurationDays() {
+    const v = $("genDuration").value;
+    if (v === "custom") {
+      const n = parseInt($("genCustomDays").value, 10);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    }
+    if (v === "") return null; // lifetime
+    return parseInt(v, 10);
+  }
+
   $("genBtn").onclick = async () => {
     const count = Math.max(1, Math.min(500, parseInt($("genCount").value, 10) || 1));
     const note = $("genNote").value.trim() || null;
+    const durationDays = selectedDurationDays();
     const keys = Array.from({ length: count }, generateKey);
 
     $("genBtn").disabled = true;
     try {
-      const rows = keys.map((key) => ({ key, note, status: "active" }));
+      const rows = keys.map((key) => ({ key, note, status: "active", duration_days: durationDays }));
       const { error } = await supabase.from("license_keys").insert(rows);
       if (error) throw error;
 
@@ -321,7 +356,7 @@
   async function loadKeys() {
     const { data, error } = await supabase
       .from("license_keys")
-      .select("key,status,assigned_user,created_at,redeemed_at,note")
+      .select("key,status,assigned_user,created_at,redeemed_at,note,duration_days,expires_at")
       .order("created_at", { ascending: false });
     if (error) { toast("Failed to load keys: " + error.message); return; }
     allKeys = data || [];
@@ -344,12 +379,16 @@
 
     for (const k of rows) {
       const tr = document.createElement("tr");
-      const badgeClass = k.status === "revoked" ? "revoked" : "active";
-      const badgeText = k.status === "revoked" ? "Revoked" : (k.assigned_user ? "Active" : "Unassigned");
+      const isExpired = k.expires_at && new Date(k.expires_at) <= new Date();
+      const badgeClass = k.status === "revoked" || isExpired ? "revoked" : "active";
+      const badgeText = k.status === "revoked" ? "Revoked" : (isExpired ? "Expired" : (k.assigned_user ? "Active" : "Unassigned"));
+      const durationText = k.duration_days ? `${k.duration_days}d` : "Lifetime";
       tr.innerHTML = `
         <td><code class="key">${escapeHtml(k.key)}</code></td>
         <td><span class="badge ${badgeClass}">${badgeText}</span></td>
         <td class="muted">${k.assigned_user ? escapeHtml(k.assigned_user) : "—"}</td>
+        <td class="muted">${durationText}</td>
+        <td class="muted">${k.expires_at ? formatDate(k.expires_at) : (k.duration_days ? "—" : "Never")}</td>
         <td class="muted">${formatDate(k.created_at)}</td>
         <td class="muted">${formatDate(k.redeemed_at)}</td>
         <td class="muted">${escapeHtml(k.note || "")}</td>
@@ -395,10 +434,14 @@
     const assigned = allKeys.filter((k) => k.assigned_user);
     for (const k of assigned) {
       const tr = document.createElement("tr");
+      const isExpired = k.expires_at && new Date(k.expires_at) <= new Date();
+      const inactive = k.status === "revoked" || isExpired;
+      const label = k.status === "revoked" ? "Inactive" : (isExpired ? "Expired" : "Active");
       tr.innerHTML = `
         <td class="muted">${escapeHtml(k.assigned_user)}</td>
-        <td><span class="badge ${k.status === "revoked" ? "revoked" : "active"}">${k.status === "revoked" ? "Inactive" : "Active"}</span></td>
+        <td><span class="badge ${inactive ? "revoked" : "active"}">${label}</span></td>
         <td><code class="key">${escapeHtml(k.key)}</code></td>
+        <td class="muted">${k.expires_at ? formatDate(k.expires_at) : "Never"}</td>
       `;
       tbody.appendChild(tr);
     }
