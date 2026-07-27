@@ -72,23 +72,41 @@ public sealed class OcrTemplateService
         using var background = SKBitmap.Decode(sourceImagePath)
             ?? throw new ScanException("Could not read this picture.");
 
-        var fields = new List<TemplateField>();
-        var index = 0;
+        // Two passes: first collect every line's raw (unpadded) box, filtering out fragments too
+        // small to sensibly edit (stray glyphs/icons OCR sometimes latches onto). Then pad each
+        // box, but clamp the padding against every *other* raw box so two lines that sit close
+        // together (a header + its subtitle, tabs in a strip, a label + its button) never grow
+        // into each other — the earlier fixed-padding version did exactly that, producing
+        // overlapping, illegibly-collided text once real values were rendered in.
+        const int minLineHeight = 8;
+        const int minLineWidth = 10;
+
+        var lines = new List<OcrLine>();
+        var rawBoxes = new List<SKRectI>();
         foreach (var line in result.Lines)
         {
             if (line.Words.Count == 0 || string.IsNullOrWhiteSpace(line.Text))
                 continue;
-
             var box = UnionRect(line);
-            var padded = Pad(box, background.Width, background.Height);
+            if (box.Height < minLineHeight || box.Width < minLineWidth)
+                continue;
+            lines.Add(line);
+            rawBoxes.Add(box);
+        }
+
+        var fields = new List<TemplateField>();
+        for (var i = 0; i < lines.Count; i++)
+        {
+            var line = lines[i];
+            var box = rawBoxes[i];
+            var padded = ClampedPad(box, rawBoxes, i, background.Width, background.Height);
 
             var color = SampleTextColor(background, box);
             EraseRegion(background, padded);
 
-            index++;
             fields.Add(new TemplateField
             {
-                Id = $"scanned{index}",
+                Id = $"scanned{i + 1}",
                 Type = "text",
                 Label = Truncate(line.Text, 40),
                 Default = line.Text,
@@ -155,15 +173,50 @@ public sealed class OcrTemplateService
     }
 
     /// <summary>Grows the detected box a bit so text isn't flush against its field's edges — the
-    /// same convention the bundled templates use — and clamps to the image bounds.</summary>
-    private static SKRectI Pad(SKRectI box, int imageWidth, int imageHeight)
+    /// same convention the bundled templates use — but only as far as the nearest neighboring
+    /// line allows, so two close-together lines never pad into each other. A neighbor only
+    /// constrains a side if it actually sits on that side (shares column range for top/bottom,
+    /// shares row range for left/right); each side gets at most half the gap to that neighbor.</summary>
+    private static SKRectI ClampedPad(SKRectI box, IReadOnlyList<SKRectI> all, int selfIndex, int imageWidth, int imageHeight)
     {
-        var padX = Math.Max(4, box.Height * 0.2);
-        var padY = Math.Max(4, box.Height * 0.25);
-        var left = Math.Max(0, box.Left - padX);
-        var top = Math.Max(0, box.Top - padY);
-        var right = Math.Min(imageWidth, box.Right + padX);
-        var bottom = Math.Min(imageHeight, box.Bottom + padY);
+        double maxLeft = Math.Max(3, box.Height * 0.2);
+        double maxRight = maxLeft;
+        double maxTop = Math.Max(3, box.Height * 0.25);
+        double maxBottom = maxTop;
+
+        for (var i = 0; i < all.Count; i++)
+        {
+            if (i == selfIndex) continue;
+            var other = all[i];
+
+            var xOverlap = Math.Min(box.Right, other.Right) - Math.Max(box.Left, other.Left);
+            if (xOverlap > 0)
+            {
+                if (other.Bottom <= box.Top)
+                    maxTop = Math.Min(maxTop, (box.Top - other.Bottom) / 2.0);
+                if (other.Top >= box.Bottom)
+                    maxBottom = Math.Min(maxBottom, (other.Top - box.Bottom) / 2.0);
+            }
+
+            var yOverlap = Math.Min(box.Bottom, other.Bottom) - Math.Max(box.Top, other.Top);
+            if (yOverlap > 0)
+            {
+                if (other.Right <= box.Left)
+                    maxLeft = Math.Min(maxLeft, (box.Left - other.Right) / 2.0);
+                if (other.Left >= box.Right)
+                    maxRight = Math.Min(maxRight, (other.Left - box.Right) / 2.0);
+            }
+        }
+
+        maxLeft = Math.Max(0, maxLeft);
+        maxRight = Math.Max(0, maxRight);
+        maxTop = Math.Max(0, maxTop);
+        maxBottom = Math.Max(0, maxBottom);
+
+        var left = Math.Max(0, box.Left - maxLeft);
+        var top = Math.Max(0, box.Top - maxTop);
+        var right = Math.Min(imageWidth, box.Right + maxRight);
+        var bottom = Math.Min(imageHeight, box.Bottom + maxBottom);
         return new SKRectI((int)left, (int)top, (int)right, (int)bottom);
     }
 

@@ -1,7 +1,7 @@
 {
-  "version": "1.3.0",
-  "notes": "New: \"Scan a picture\" — upload any image and Screens detects the text on it, erases it, and turns each line into an editable field you can replace (best-effort font size/color; not literal font matching).",
-  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.3.0.exe",
-  "sha256": "749f68509c016f535640fcccfc2127134d98f8d4c9bb21bb1676a17f5fd2fda5",
+  "version": "1.3.1",
+  "notes": "Fix: \"Scan a picture\" fields from adjacent text (e.g. a header and the line right below it, or tabs in a strip) could overlap once filled in. Scanned fields now leave room for their neighbors.",
+  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.3.1.exe",
+  "sha256": "92bc4af0250bf45bcb88e1505811f8583c7ca84d29e3bc8e4b8df1cddd4b4d04",
   "mandatory": false
 }
