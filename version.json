@@ -1,7 +1,7 @@
 {
-  "version": "1.7.0",
-  "notes": "Fix: \"Build a template\" text placeholders now actually erase the original baked-in text (sampling its real color, and whether it's bold) before you replace it — previously your typed text was drawn without removing what was underneath.",
-  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.7.0.exe",
-  "sha256": "105cafee092c1a77353876aa9c0c85634217c46c285c86e0012752b99d83a434",
+  "version": "1.8.0",
+  "notes": "New: Bengali (Bangla) text now renders correctly and automatically — any field containing Bengali script uses a bundled Bengali typeface with proper conjunct/matra shaping, matching size/color rules as any other text. No setup needed; English and Bengali text can be mixed across fields in the same template.",
+  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.8.0.exe",
+  "sha256": "cda911d3e9087834db4832e5cf9dc32e472dbf9324467786b49a01469e1d2162",
   "mandatory": false
 }

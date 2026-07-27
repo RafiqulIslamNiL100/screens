@@ -17,6 +17,7 @@ public sealed class FontRegistry
     private readonly Dictionary<string, SKTypeface> _cache = new(StringComparer.OrdinalIgnoreCase);
     private readonly string _fontsDir = Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts");
     private SKTypeface? _fallback;
+    private SKTypeface? _bengali;
 
     private static readonly Dictionary<string, string> FileMap = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -27,6 +28,31 @@ public sealed class FontRegistry
         ["Cabin|Regular|false"] = "Cabin-Regular.ttf",
         ["Cabin|Bold|false"] = "Cabin-Bold.ttf",
     };
+
+    /// <summary>True if any character in <paramref name="text"/> falls in the Bengali Unicode
+    /// block (U+0980-U+09FF) — used to automatically switch to the Bengali typeface + HarfBuzz
+    /// shaping for a field's text, regardless of what font family the template/field specifies,
+    /// since none of the bundled Latin fonts carry Bengali glyphs at all.</summary>
+    public static bool ContainsBengali(string text)
+    {
+        foreach (var ch in text)
+            if (ch is >= 'ঀ' and <= '৿')
+                return true;
+        return false;
+    }
+
+    /// <summary>The bundled Bengali typeface (Noto Sans Bengali). There's only one weight bundled
+    /// — a real bold instance would need instancing a variation axis on this variable font, which
+    /// SkiaSharp 2.88 doesn't expose cleanly, so "Bold" Bengali text uses <c>SKPaint.FakeBoldText</c>
+    /// (synthetic emboldening) on this same face instead of a second file.</summary>
+    public SKTypeface ResolveBengali()
+    {
+        if (_bengali is not null)
+            return _bengali;
+        var path = Path.Combine(_fontsDir, "NotoSansBengali-Regular.ttf");
+        _bengali = File.Exists(path) ? SKTypeface.FromFile(path) : Fallback();
+        return _bengali;
+    }
 
     public SKTypeface Resolve(string family, string weight, bool italic)
     {

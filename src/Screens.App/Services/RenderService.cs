@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using SkiaSharp;
+using SkiaSharp.HarfBuzz;
 using QRCoder;
 using Screens.App.Models;
 
@@ -188,7 +189,17 @@ public sealed class RenderService
         var color = SKColor.Parse(colorHex);
         var alpha = (byte)(Math.Clamp(field.Opacity, 0.0, 1.0) * 255);
         color = color.WithAlpha(alpha);
-        var typeface = _fonts.Resolve(field.Font.Family, field.Font.Weight, field.Font.Italic);
+
+        // None of the bundled Latin fonts carry Bengali glyphs, so Bengali text always renders
+        // through the bundled Bengali face instead — regardless of what family the field/template
+        // specifies — shaped via HarfBuzz so conjuncts and matras (vowel signs that reorder around
+        // the consonant, e.g. রি) draw correctly instead of as separate, wrongly-positioned glyphs.
+        // Latin/other text takes the exact same path it always has (plain SKPaint.DrawText).
+        var isBengali = FontRegistry.ContainsBengali(text);
+        var typeface = isBengali
+            ? _fonts.ResolveBengali()
+            : _fonts.Resolve(field.Font.Family, field.Font.Weight, field.Font.Italic);
+        using var shaper = isBengali ? new SKShaper(typeface) : null;
 
         using var paint = new SKPaint
         {
@@ -196,7 +207,12 @@ public sealed class RenderService
             Color = color,
             Typeface = typeface,
             TextAlign = SKTextAlign.Left,
+            // There's only one bundled Bengali weight (see FontRegistry.ResolveBengali), so
+            // "Bold" is approximated with synthetic emboldening rather than a second font file.
+            FakeBoldText = isBengali && field.Font.Weight.Equals("Bold", StringComparison.OrdinalIgnoreCase),
         };
+
+        float MeasureWidth(string s) => shaper is not null ? shaper.Shape(s, paint).Width : paint.MeasureText(s);
 
         var fontSize = (float)(field.RuntimeSizeOverride ?? field.Font.Size);
         var minSize = fontSize * 0.5f;
@@ -215,7 +231,7 @@ public sealed class RenderService
             var totalHeight = lines.Count * lineHeightPx;
             var widestLine = 0f;
             foreach (var line in lines)
-                widestLine = Math.Max(widestLine, paint.MeasureText(line));
+                widestLine = Math.Max(widestLine, MeasureWidth(line));
 
             var overflowsHeight = field.Multiline ? totalHeight > box.Height : lineHeightPx > box.Height;
             var overflowsWidth = !field.Multiline && widestLine > box.Width;
@@ -279,16 +295,25 @@ public sealed class RenderService
         float y = startY - metrics.Ascent + (finalLineHeight - fontSize) / 2f;
         foreach (var line in lines)
         {
-            var lineWidth = paint.MeasureText(line);
+            var lineWidth = MeasureWidth(line);
             float x = field.Align switch
             {
                 "center" => box.MidX - lineWidth / 2f,
                 "right" => box.Right - lineWidth,
                 _ => box.Left,
             };
-            if (shadowPaint is not null)
-                canvas.DrawText(line, x + fontSize * 0.03f, y + fontSize * 0.05f, shadowPaint);
-            canvas.DrawText(line, x, y, paint);
+            if (shaper is not null)
+            {
+                if (shadowPaint is not null)
+                    canvas.DrawShapedText(shaper, line, x + fontSize * 0.03f, y + fontSize * 0.05f, shadowPaint);
+                canvas.DrawShapedText(shaper, line, x, y, paint);
+            }
+            else
+            {
+                if (shadowPaint is not null)
+                    canvas.DrawText(line, x + fontSize * 0.03f, y + fontSize * 0.05f, shadowPaint);
+                canvas.DrawText(line, x, y, paint);
+            }
             y += finalLineHeight;
         }
 
