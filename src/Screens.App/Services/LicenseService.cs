@@ -9,7 +9,7 @@ using Screens.App.Models;
 
 namespace Screens.App.Services;
 
-public enum RedeemOutcome { Success, InvalidKey, AlreadyRedeemed, Revoked, NoNetwork, Unknown }
+public enum RedeemOutcome { Success, InvalidKey, AlreadyRedeemed, Revoked, NoNetwork, Unknown, WrongKeyType }
 
 /// <summary>
 /// Polls license status every 5 minutes and on window focus. Offline grace
@@ -58,6 +58,15 @@ public sealed class LicenseService : IDisposable
             if (response.IsSuccessStatusCode)
             {
                 var redeemed = await response.Content.ReadFromJsonAsync<LicenseRow>(JsonOpts);
+
+                // The key is now claimed under the caller's account regardless of type — the
+                // RPC has no notion of "which screen was this typed into." A premium_templates
+                // key entered here is still validly redeemed (RefreshAsync's own type=eq.license
+                // filter just won't ever surface it as an app license), but the app license
+                // itself must not silently activate off the wrong kind of key.
+                if (redeemed?.Type is not (null or "license"))
+                    return RedeemOutcome.WrongKeyType;
+
                 State = new LicenseState
                 {
                     IsActive = true,
@@ -96,7 +105,7 @@ public sealed class LicenseService : IDisposable
 
         try
         {
-            var url = $"{_config.SupabaseUrl.TrimEnd('/')}/rest/v1/license_keys?assigned_user=eq.{_auth.CurrentSession.UserId}&select=key,status,expires_at";
+            var url = $"{_config.SupabaseUrl.TrimEnd('/')}/rest/v1/license_keys?assigned_user=eq.{_auth.CurrentSession.UserId}&type=eq.license&select=key,status,expires_at";
             var response = await _auth.Http.GetAsync(url);
             if (!response.IsSuccessStatusCode)
                 throw new HttpRequestException("license lookup failed");
@@ -155,5 +164,6 @@ public sealed class LicenseService : IDisposable
         [JsonPropertyName("key")] public string? Key { get; set; }
         [JsonPropertyName("status")] public string? Status { get; set; }
         [JsonPropertyName("expires_at")] public DateTimeOffset? ExpiresAt { get; set; }
+        [JsonPropertyName("type")] public string? Type { get; set; }
     }
 }

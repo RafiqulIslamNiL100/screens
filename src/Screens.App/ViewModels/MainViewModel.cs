@@ -24,6 +24,8 @@ public partial class MainViewModel : ViewModelBase
     private readonly FontRegistry _fonts;
     private readonly LicenseService _license;
     private readonly OcrTemplateService _ocr;
+    private readonly PremiumAccessService _premiumAccess;
+    private readonly PremiumTemplateSyncService _premiumSync;
     public LocalizationService Loc { get; }
 
     private CancellationTokenSource? _debounceCts;
@@ -209,6 +211,133 @@ public partial class MainViewModel : ViewModelBase
         ShowToast = true;
     }
 
+    /// <summary>Copies the selected template's manifest+image, byte-for-byte, into a chosen
+    /// folder — the portable package an admin hands off to have a template shipped as a Premium
+    /// Template (added to premium-templates/index.json in the distribution repo). Works for any
+    /// currently selected template regardless of its origin — bundled, duplicated, scanned, or
+    /// built — not just ones just created with Build a Template.</summary>
+    public void ExportSelectedTemplatePackage(string destinationFolder)
+    {
+        if (SelectedTemplate is not { } template || template.SourceDirectory is null)
+            return;
+
+        var sourceJson = Path.Combine(template.SourceDirectory, $"{template.Id}.json");
+        var sourceImage = Path.Combine(template.SourceDirectory, template.Image);
+        if (!File.Exists(sourceJson) || !File.Exists(sourceImage))
+            return;
+
+        Directory.CreateDirectory(destinationFolder);
+        File.Copy(sourceJson, Path.Combine(destinationFolder, $"{template.Id}.json"), overwrite: true);
+        File.Copy(sourceImage, Path.Combine(destinationFolder, template.Image), overwrite: true);
+
+        ToastMessage = $"Exported \"{template.Name}\" — add it to premium-templates/index.json to ship it.";
+        ShowToast = true;
+    }
+
+    // ---- Premium Templates (key-gated, admin-shipped, locked format) --------
+
+    [ObservableProperty] private bool _isPremiumUnlocked;
+    [ObservableProperty] private bool _showPremiumKeyPrompt;
+    [ObservableProperty] private string _premiumKeyInput = "";
+    [ObservableProperty] private string? _premiumKeyError;
+    [ObservableProperty] private bool _isRedeemingPremiumKey;
+    [ObservableProperty] private bool _showPremiumGallery;
+    [ObservableProperty] private bool _isLoadingPremiumGallery;
+    [ObservableProperty] private string? _premiumGalleryError;
+
+    public ObservableCollection<PremiumTemplateIndexEntry> PremiumGalleryEntries { get; } = new();
+
+    [RelayCommand]
+    private async Task OpenPremiumTemplatesAsync()
+    {
+        if (!IsPremiumUnlocked)
+        {
+            PremiumKeyError = null;
+            PremiumKeyInput = "";
+            ShowPremiumKeyPrompt = true;
+            return;
+        }
+
+        await RefreshPremiumGalleryAsync();
+    }
+
+    [RelayCommand]
+    private void ClosePremiumKeyPrompt() => ShowPremiumKeyPrompt = false;
+
+    [RelayCommand]
+    private async Task RedeemPremiumKeyAsync()
+    {
+        if (string.IsNullOrWhiteSpace(PremiumKeyInput))
+            return;
+
+        IsRedeemingPremiumKey = true;
+        PremiumKeyError = null;
+        try
+        {
+            var outcome = await _premiumAccess.RedeemAsync(PremiumKeyInput.Trim());
+            PremiumKeyError = outcome switch
+            {
+                RedeemOutcome.Success => null,
+                RedeemOutcome.WrongKeyType => "That looks like an app-activation key, not a Premium Templates key.",
+                RedeemOutcome.AlreadyRedeemed => "This key has already been used.",
+                RedeemOutcome.Revoked => "This key has been revoked.",
+                RedeemOutcome.InvalidKey => "That key wasn't found. Double-check it and try again.",
+                RedeemOutcome.NoNetwork => "Couldn't reach the server — check your connection and try again.",
+                _ => "Something went wrong redeeming this key.",
+            };
+
+            if (outcome == RedeemOutcome.Success)
+            {
+                ShowPremiumKeyPrompt = false;
+                await RefreshPremiumGalleryAsync();
+            }
+        }
+        finally
+        {
+            IsRedeemingPremiumKey = false;
+        }
+    }
+
+    private async Task RefreshPremiumGalleryAsync()
+    {
+        IsLoadingPremiumGallery = true;
+        PremiumGalleryError = null;
+        PremiumGalleryEntries.Clear();
+        try
+        {
+            var entries = await _premiumSync.FetchIndexAsync();
+            if (entries.Count == 0)
+                PremiumGalleryError = "No premium templates are available right now.";
+            foreach (var e in entries)
+                PremiumGalleryEntries.Add(e);
+            ShowPremiumGallery = true;
+        }
+        finally
+        {
+            IsLoadingPremiumGallery = false;
+        }
+    }
+
+    [RelayCommand]
+    private void ClosePremiumGallery() => ShowPremiumGallery = false;
+
+    [RelayCommand]
+    private async Task SelectPremiumTemplateAsync(PremiumTemplateIndexEntry? entry)
+    {
+        if (entry is null)
+            return;
+
+        var ok = await _premiumSync.EnsureDownloadedAsync(entry);
+        if (!ok)
+        {
+            PremiumGalleryError = $"Couldn't download \"{entry.Name}\" — check your connection and try again.";
+            return;
+        }
+
+        ShowPremiumGallery = false;
+        LoadTemplates(entry.Id);
+    }
+
     public ObservableCollection<FieldEditorItemViewModel> Fields { get; } = new();
     public ObservableCollection<TemplateLoadWarning> Warnings { get; } = new();
     public ObservableCollection<ExportPreset> ExportPresets { get; } = new();
@@ -219,7 +348,7 @@ public partial class MainViewModel : ViewModelBase
     public event EventHandler<SKBitmapHolder>? ClipboardExportRequested;
     public event EventHandler<ThemePreference>? ThemeChanged;
 
-    public MainViewModel(TemplateService templates, RenderService render, SettingsService settings, UpdateService update, FontRegistry fonts, LicenseService license, LocalizationService loc, OcrTemplateService ocr)
+    public MainViewModel(TemplateService templates, RenderService render, SettingsService settings, UpdateService update, FontRegistry fonts, LicenseService license, LocalizationService loc, OcrTemplateService ocr, PremiumAccessService premiumAccess, PremiumTemplateSyncService premiumSync)
     {
         _templates = templates;
         _render = render;
@@ -228,6 +357,8 @@ public partial class MainViewModel : ViewModelBase
         _fonts = fonts;
         _license = license;
         _ocr = ocr;
+        _premiumAccess = premiumAccess;
+        _premiumSync = premiumSync;
         Loc = loc;
 
         var appSettings = _settings.Load();
@@ -241,6 +372,9 @@ public partial class MainViewModel : ViewModelBase
         Loc.Language = Language;
         _license.StateChanged += _ => UpdateLicenseCountdown();
         UpdateLicenseCountdown();
+
+        IsPremiumUnlocked = _premiumAccess.State.IsUnlocked;
+        _premiumAccess.StateChanged += state => IsPremiumUnlocked = state.IsUnlocked;
 
         BuildCommandPaletteItems();
 

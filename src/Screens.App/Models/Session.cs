@@ -20,3 +20,15 @@ public sealed class LicenseState
     /// <summary>Null = lifetime key, never expires.</summary>
     public DateTimeOffset? ExpiresAt { get; set; }
 }
+
+/// <summary>Same shape and verification pattern as <see cref="LicenseState"/>, for the separate
+/// "premium_templates"-type key that unlocks the admin-shipped template gallery — a user can hold
+/// an app license, premium template access, both, or neither, independently of each other.</summary>
+public sealed class PremiumAccessState
+{
+    public bool IsUnlocked { get; set; }
+    public string? Key { get; set; }
+    public DateTimeOffset? LastVerifiedAt { get; set; }
+    public string Status { get; set; } = "none"; // none | active | revoked
+    public DateTimeOffset? ExpiresAt { get; set; }
+}

@@ -40,6 +40,7 @@ public sealed class SettingsService
     private readonly string _root;
     private readonly string _sessionPath;
     private readonly string _licensePath;
+    private readonly string _premiumAccessPath;
     private readonly string _settingsPath;
 
     public SettingsService()
@@ -47,12 +48,20 @@ public sealed class SettingsService
         _root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Screens");
         Directory.CreateDirectory(_root);
         Directory.CreateDirectory(Path.Combine(_root, "Templates"));
+        Directory.CreateDirectory(Path.Combine(_root, "PremiumTemplates"));
         _sessionPath = Path.Combine(_root, "session.dat");
         _licensePath = Path.Combine(_root, "license.json");
+        _premiumAccessPath = Path.Combine(_root, "premium-access.json");
         _settingsPath = Path.Combine(_root, "settings.json");
     }
 
     public string TemplatesDirectory => Path.Combine(_root, "Templates");
+    /// <summary>Where downloaded Premium Templates (admin-shipped, force-locked) are cached —
+    /// deliberately separate from <see cref="TemplatesDirectory"/> so <see cref="TemplateService"/>
+    /// can tell an admin-shipped template apart from the user's own custom/scanned/built ones
+    /// purely by which directory it loaded from, the same way it already distinguishes bundled
+    /// from custom.</summary>
+    public string PremiumTemplatesDirectory => Path.Combine(_root, "PremiumTemplates");
     public string DefaultExportDirectory =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "Screens");
 
@@ -114,6 +123,23 @@ public sealed class SettingsService
         try
         {
             return JsonSerializer.Deserialize<LicenseState>(await File.ReadAllTextAsync(_licensePath));
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task SavePremiumAccessStateAsync(PremiumAccessState state) =>
+        await File.WriteAllTextAsync(_premiumAccessPath, JsonSerializer.Serialize(state));
+
+    public async Task<PremiumAccessState?> LoadPremiumAccessStateAsync()
+    {
+        if (!File.Exists(_premiumAccessPath))
+            return null;
+        try
+        {
+            return JsonSerializer.Deserialize<PremiumAccessState>(await File.ReadAllTextAsync(_premiumAccessPath));
         }
         catch
         {

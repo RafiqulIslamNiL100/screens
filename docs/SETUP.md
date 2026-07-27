@@ -13,10 +13,14 @@ Supabase dashboard** — everything else already works.
 
 1. Open your project's SQL editor: https://supabase.com/dashboard/project/gyedrlhxyzdjjanvbmvw/sql/new
 2. Paste in the full contents of [`/db/schema.sql`](../db/schema.sql) and run it.
-   This creates `license_keys` (with duration/expiry columns), RLS
+   This creates `license_keys` (with duration/expiry columns, and a `type`
+   column distinguishing an app-activation key from a `premium_templates`
+   access key — same table, same `redeem_key` RPC, both key kinds), RLS
    (authenticated users read their own key; the `anon` role gets full access
    for `admin.html`), and the `redeem_key` RPC. Safe to re-run in full —
-   every statement is idempotent.
+   every statement is idempotent. **If you ran this before the `type` column
+   existed, re-run it once** to pick that up — every existing key defaults to
+   `type = 'license'`, so nothing already issued changes behavior.
 3. Under **Authentication → Providers**, email/password is enabled by
    default — no change needed. Decide whether to require email confirmation
    (Authentication → Settings); either setting works with the app's sign-up

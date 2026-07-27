@@ -1,7 +1,7 @@
 {
-  "version": "1.8.0",
-  "notes": "New: Bengali (Bangla) text now renders correctly and automatically — any field containing Bengali script uses a bundled Bengali typeface with proper conjunct/matra shaping, matching size/color rules as any other text. No setup needed; English and Bengali text can be mixed across fields in the same template.",
-  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.8.0.exe",
-  "sha256": "cda911d3e9087834db4832e5cf9dc32e472dbf9324467786b49a01469e1d2162",
+  "version": "1.9.0",
+  "notes": "New: Premium Templates — a separate access key unlocks a gallery of admin-made templates where font/size/layout are locked to exactly what the admin set; you only fill in the values. Admins build these with the existing Build a Template tool and ship them via Settings → Export template package.",
+  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.9.0.exe",
+  "sha256": "b7915c2e53fcdfa20df70327fb6d1cdb06f0e40d2486aadbbcb42a66057cad0d",
   "mandatory": false
 }

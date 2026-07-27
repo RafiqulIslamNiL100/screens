@@ -10,6 +10,8 @@ public sealed class AppConfig
     public string SupabaseAnonKey { get; init; } = "";
     public string VersionJsonUrl { get; init; } = "";
     public string RenewUrl { get; init; } = "";
+    public string PremiumTemplatesIndexUrl { get; init; } = "";
+    public string PremiumTemplatesBaseUrl { get; init; } = "";
 
     public bool IsSupabaseConfigured =>
         !string.IsNullOrWhiteSpace(SupabaseUrl) &&
@@ -27,6 +29,7 @@ public sealed class AppConfig
         var root = doc.RootElement;
         var supabase = root.TryGetProperty("Supabase", out var s) ? s : default;
         var update = root.TryGetProperty("Update", out var u) ? u : default;
+        var premium = root.TryGetProperty("PremiumTemplates", out var p) ? p : default;
 
         return new AppConfig
         {
@@ -34,6 +37,8 @@ public sealed class AppConfig
             SupabaseAnonKey = supabase.ValueKind == JsonValueKind.Object && supabase.TryGetProperty("AnonKey", out var key) ? key.GetString() ?? "" : "",
             VersionJsonUrl = update.ValueKind == JsonValueKind.Object && update.TryGetProperty("VersionJsonUrl", out var vurl) ? vurl.GetString() ?? "" : "",
             RenewUrl = update.ValueKind == JsonValueKind.Object && update.TryGetProperty("RenewUrl", out var rurl) ? rurl.GetString() ?? "" : "",
+            PremiumTemplatesIndexUrl = premium.ValueKind == JsonValueKind.Object && premium.TryGetProperty("IndexUrl", out var iurl) ? iurl.GetString() ?? "" : "",
+            PremiumTemplatesBaseUrl = premium.ValueKind == JsonValueKind.Object && premium.TryGetProperty("BaseUrl", out var burl) ? burl.GetString() ?? "" : "",
         };
     }
 }

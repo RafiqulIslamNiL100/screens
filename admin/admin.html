@@ -159,6 +159,13 @@
           <input id="genCount" type="number" min="1" max="500" value="10">
         </div>
         <div>
+          <label for="genType">Key type</label>
+          <select id="genType">
+            <option value="license" selected>App license</option>
+            <option value="premium_templates">Premium Templates access</option>
+          </select>
+        </div>
+        <div>
           <label for="genDuration">Duration</label>
           <select id="genDuration">
             <option value="7">1 week</option>
@@ -220,7 +227,7 @@
         <table>
           <thead>
             <tr>
-              <th>Key</th><th>Status</th><th>Assigned user</th><th>Duration</th><th>Expires</th><th>Created</th><th>Redeemed</th><th>Note</th><th></th>
+              <th>Key</th><th>Type</th><th>Status</th><th>Assigned user</th><th>Duration</th><th>Expires</th><th>Created</th><th>Redeemed</th><th>Note</th><th></th>
             </tr>
           </thead>
           <tbody id="keysBody"></tbody>
@@ -232,7 +239,7 @@
       <h2>Users</h2>
       <div style="overflow-x:auto;">
         <table>
-          <thead><tr><th>User (id)</th><th>Status</th><th>License key</th><th>Expires</th></tr></thead>
+          <thead><tr><th>User (id)</th><th>Status</th><th>Key</th><th>Type</th><th>Expires</th></tr></thead>
           <tbody id="usersBody"></tbody>
         </table>
       </div>
@@ -328,11 +335,12 @@
     const count = Math.max(1, Math.min(500, parseInt($("genCount").value, 10) || 1));
     const note = $("genNote").value.trim() || null;
     const durationDays = selectedDurationDays();
+    const type = $("genType").value;
     const keys = Array.from({ length: count }, generateKey);
 
     $("genBtn").disabled = true;
     try {
-      const rows = keys.map((key) => ({ key, note, status: "active", duration_days: durationDays }));
+      const rows = keys.map((key) => ({ key, note, status: "active", duration_days: durationDays, type }));
       const { error } = await supabase.from("license_keys").insert(rows);
       if (error) throw error;
 
@@ -368,7 +376,7 @@
   async function loadKeys() {
     const { data, error } = await supabase
       .from("license_keys")
-      .select("key,status,assigned_user,created_at,redeemed_at,note,duration_days,expires_at")
+      .select("key,status,assigned_user,created_at,redeemed_at,note,duration_days,expires_at,type")
       .order("created_at", { ascending: false });
     if (error) { toast("Failed to load keys: " + error.message); return; }
     allKeys = data || [];
@@ -396,8 +404,10 @@
       const badgeClass = k.status === "revoked" || isExpired ? "revoked" : "active";
       const badgeText = k.status === "revoked" ? "Revoked" : (isExpired ? "Expired" : (k.assigned_user ? "Active" : "Unassigned"));
       const durationText = k.duration_days ? `${k.duration_days}d` : "Lifetime";
+      const typeText = k.type === "premium_templates" ? "Premium Templates" : "App license";
       tr.innerHTML = `
         <td><code class="key">${escapeHtml(k.key)}</code></td>
+        <td class="muted">${typeText}</td>
         <td><span class="badge ${badgeClass}">${badgeText}</span></td>
         <td class="muted">${k.assigned_user ? escapeHtml(k.assigned_user) : "—"}</td>
         <td class="muted">${durationText}</td>
@@ -450,10 +460,12 @@
       const isExpired = k.expires_at && new Date(k.expires_at) <= new Date();
       const inactive = k.status === "revoked" || isExpired;
       const label = k.status === "revoked" ? "Inactive" : (isExpired ? "Expired" : "Active");
+      const typeText = k.type === "premium_templates" ? "Premium Templates" : "App license";
       tr.innerHTML = `
         <td class="muted">${escapeHtml(k.assigned_user)}</td>
         <td><span class="badge ${inactive ? "revoked" : "active"}">${label}</span></td>
         <td><code class="key">${escapeHtml(k.key)}</code></td>
+        <td class="muted">${typeText}</td>
         <td class="muted">${k.expires_at ? formatDate(k.expires_at) : "Never"}</td>
       `;
       tbody.appendChild(tr);

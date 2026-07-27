@@ -17,6 +17,13 @@ public sealed class TemplateManifest
     /// <summary>True for templates saved under %APPDATA%\Screens\Templates (e.g. duplicates the
     /// user made) — these show a Delete affordance in the gallery; bundled templates never do.</summary>
     [JsonIgnore] public bool IsCustom { get; set; }
+
+    /// <summary>True for templates downloaded into %APPDATA%\Screens\PremiumTemplates — admin-shipped
+    /// templates unlocked by a premium_templates access key. TemplateService force-clears every
+    /// field's UserEditableColor/UserEditableSize when loading from that directory, regardless of
+    /// what the manifest itself says, so these can never be restyled by the end user — the whole
+    /// point of the feature is that the admin's font/size choices are what ships.</summary>
+    [JsonIgnore] public bool IsPremium { get; set; }
 }
 
 public sealed class CanvasSize

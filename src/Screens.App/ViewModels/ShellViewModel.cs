@@ -17,6 +17,7 @@ public partial class ShellViewModel : ViewModelBase
 {
     private readonly AuthService _auth;
     private readonly LicenseService _license;
+    private readonly PremiumAccessService _premiumAccess;
 
     [ObservableProperty] private ShellScreen _screen = ShellScreen.Splash;
     [ObservableProperty] private bool _showOfflineGraceBanner;
@@ -25,10 +26,11 @@ public partial class ShellViewModel : ViewModelBase
     public ActivationViewModel ActivationViewModel { get; }
     public MainViewModel MainViewModel { get; }
 
-    public ShellViewModel(AuthService auth, LicenseService license, AuthViewModel authVm, ActivationViewModel activationVm, MainViewModel mainVm)
+    public ShellViewModel(AuthService auth, LicenseService license, PremiumAccessService premiumAccess, AuthViewModel authVm, ActivationViewModel activationVm, MainViewModel mainVm)
     {
         _auth = auth;
         _license = license;
+        _premiumAccess = premiumAccess;
         AuthViewModel = authVm;
         ActivationViewModel = activationVm;
         MainViewModel = mainVm;
@@ -72,6 +74,10 @@ public partial class ShellViewModel : ViewModelBase
     private async Task AfterAuthAsync()
     {
         await _license.InitializeAsync();
+        // Independent of app-license activation on purpose — a user with no premium key
+        // yet should still land on Main once the app itself is licensed, so this must never
+        // gate Screen the way _license.State.IsActive does.
+        await _premiumAccess.InitializeAsync();
         Screen = _license.State.IsActive ? ShellScreen.Main : ShellScreen.Activation;
         if (Screen == ShellScreen.Main)
             await MainViewModel.CheckForUpdatesOnStartupAsync();

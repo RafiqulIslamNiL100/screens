@@ -27,6 +27,13 @@ create table if not exists public.license_keys (
 alter table public.license_keys add column if not exists duration_days integer;
 alter table public.license_keys add column if not exists expires_at timestamptz;
 
+-- 'license' unlocks the app itself (the original, only key type); 'premium_templates'
+-- unlocks the admin-shipped template gallery. Same table/redeem flow for both — the type is
+-- decided when the key is generated in admin.html and never changes after that. A user can
+-- hold both kinds of key redemption at once (they're different rows).
+alter table public.license_keys add column if not exists type text not null default 'license'
+  check (type in ('license', 'premium_templates'));
+
 alter table public.license_keys enable row level security;
 
 -- ---------------------------------------------------------------------

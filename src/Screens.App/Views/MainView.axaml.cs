@@ -348,6 +348,40 @@ public partial class MainView : UserControl
             vm.CloseCommandPaletteCommand.Execute(null);
     }
 
+    private async void OnExportTemplatePackageClicked(object? sender, RoutedEventArgs e)
+    {
+        if (Vm is not { } vm)
+            return;
+
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel is null)
+            return;
+
+        var folders = await topLevel.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Choose a folder to export the template package into",
+            AllowMultiple = false,
+        });
+
+        var folder = folders.Count > 0 ? folders[0] : null;
+        if (folder?.Path.LocalPath is not { } path)
+            return;
+
+        vm.ExportSelectedTemplatePackage(path);
+    }
+
+    private void OnPremiumGalleryBackdropPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender == e.Source && Vm is { } vm)
+            vm.ClosePremiumGalleryCommand.Execute(null);
+    }
+
+    private void OnPremiumTemplateTilePressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is Control { Tag: PremiumTemplateIndexEntry entry } && Vm is { } vm)
+            vm.SelectPremiumTemplateCommand.Execute(entry);
+    }
+
     // ---- Drag-to-reposition -------------------------------------------
 
     private void OnFieldDragStart(object? sender, PointerPressedEventArgs e)

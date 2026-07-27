@@ -31,6 +31,7 @@ public sealed class TemplateService
         var bundled = Path.Combine(AppContext.BaseDirectory, "Assets", "Templates");
         LoadFrom(bundled, result);
         LoadFrom(_settings.TemplatesDirectory, result);
+        LoadFrom(_settings.PremiumTemplatesDirectory, result);
 
         return result.OrderBy(t => t.Category).ThenBy(t => t.Name).ToList();
     }
@@ -60,6 +61,17 @@ public sealed class TemplateService
 
                 manifest.SourceDirectory = directory;
                 manifest.IsCustom = directory == _settings.TemplatesDirectory;
+                manifest.IsPremium = directory == _settings.PremiumTemplatesDirectory;
+                if (manifest.IsPremium)
+                {
+                    // Force-locked regardless of what the manifest itself says — the point of a
+                    // Premium Template is that the admin's font/size choices are what ships.
+                    foreach (var field in manifest.Fields)
+                    {
+                        field.UserEditableColor = false;
+                        field.UserEditableSize = false;
+                    }
+                }
                 result.Add(manifest);
             }
             catch (JsonException ex)
