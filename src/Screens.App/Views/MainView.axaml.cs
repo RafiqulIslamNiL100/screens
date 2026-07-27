@@ -21,7 +21,6 @@ public partial class MainView : UserControl
 
     private FieldEditorItemViewModel? _draggingField;
     private Point _dragLastPointerPos;
-    private double _dragScale = 1.0;
 
     public MainView()
     {
@@ -122,6 +121,16 @@ public partial class MainView : UserControl
             field.Value = "";
     }
 
+    /// <summary>Selects all existing text the moment a field gets focus, so typing replaces a
+    /// template's default/placeholder value outright instead of inserting into the middle of it
+    /// or appending after it (e.g. a built template's "Edit me" default becoming "Edit mebfdb"
+    /// when the user meant to replace it entirely).</summary>
+    private void OnFieldTextBoxGotFocus(object? sender, GotFocusEventArgs e)
+    {
+        if (sender is TextBox textBox)
+            textBox.SelectAll();
+    }
+
     private async void OnScanImageClicked(object? sender, RoutedEventArgs e)
     {
         if (Vm is not { } vm)
@@ -182,26 +191,25 @@ public partial class MainView : UserControl
     }
 
     // ---- Build-a-template: draw a region on the raw photo -------------
+    //
+    // The draw Canvas has no explicit Width/Height, so it stretches to fill its parent Panel,
+    // which IS sized to the photo's actual pixel dimensions (Width="{Binding BuildPhotoWidth}").
+    // Avalonia's GetPosition(canvas) already resolves into that Canvas's own local coordinate
+    // space — i.e. photo-pixel units — regardless of the ambient Viewbox's visual scale (that's
+    // the whole point of the API: hit-testing works the same however a control is transformed
+    // for display). An earlier version of this code additionally divided/multiplied by a
+    // display-scale factor here, which double-converted the coordinates and produced the drawn
+    // regions in the wrong place. No scale math is needed at all.
 
     private Point? _buildDrawStart;
-
-    private double BuildDrawScale()
-    {
-        var image = this.FindControl<Image>("BuildPhotoImage");
-        var vm = Vm;
-        if (image is null || vm is null || vm.BuildPhotoWidth <= 0 || image.Bounds.Width <= 0)
-            return 1.0;
-        return image.Bounds.Width / vm.BuildPhotoWidth;
-    }
 
     private void OnBuildDrawStart(object? sender, PointerPressedEventArgs e)
     {
         if (sender is not Canvas canvas)
             return;
 
-        var scale = BuildDrawScale();
         var pos = e.GetPosition(canvas);
-        _buildDrawStart = new Point(pos.X / scale, pos.Y / scale);
+        _buildDrawStart = pos;
 
         var box = this.FindControl<Border>("BuildInProgressBox");
         if (box is null)
@@ -224,16 +232,11 @@ public partial class MainView : UserControl
         if (box is null)
             return;
 
-        var scale = BuildDrawScale();
         var pos = e.GetPosition(canvas);
-        var startScreen = new Point(start.X * scale, start.Y * scale);
-
-        var left = Math.Min(startScreen.X, pos.X);
-        var top = Math.Min(startScreen.Y, pos.Y);
-        Canvas.SetLeft(box, left);
-        Canvas.SetTop(box, top);
-        box.Width = Math.Abs(pos.X - startScreen.X);
-        box.Height = Math.Abs(pos.Y - startScreen.Y);
+        Canvas.SetLeft(box, Math.Min(start.X, pos.X));
+        Canvas.SetTop(box, Math.Min(start.Y, pos.Y));
+        box.Width = Math.Abs(pos.X - start.X);
+        box.Height = Math.Abs(pos.Y - start.Y);
     }
 
     private void OnBuildDrawEnd(object? sender, PointerReleasedEventArgs e)
@@ -252,9 +255,7 @@ public partial class MainView : UserControl
             return;
         }
 
-        var scale = BuildDrawScale();
-        var pos = e.GetPosition(canvas);
-        var end = new Point(pos.X / scale, pos.Y / scale);
+        var end = e.GetPosition(canvas);
         _buildDrawStart = null;
 
         var x = Math.Min(start.X, end.X);
@@ -356,10 +357,6 @@ public partial class MainView : UserControl
 
         _draggingField = field;
         _dragLastPointerPos = e.GetPosition(control.Parent as Visual ?? control);
-        // The overlay Canvas is inside a LayoutTransformControl whose Bounds stay in
-        // pre-transform (canvas-pixel) space, so it can't be used to recover the
-        // on-screen scale. Use EffectiveZoom directly instead.
-        _dragScale = Vm?.EffectiveZoom > 0 ? Vm.EffectiveZoom : 1.0;
         e.Pointer.Capture(control);
     }
 
@@ -370,10 +367,18 @@ public partial class MainView : UserControl
         if (!Equals(e.Pointer.Captured, control))
             return;
 
+        // The overlay Canvas has no explicit size, so it stretches to fill its parent Panel,
+        // which IS sized to the template's actual canvas-pixel dimensions — GetPosition already
+        // resolves into that Canvas's own local coordinate space regardless of the ambient
+        // LayoutTransformControl's zoom scale (that's what GetPosition is for), so the raw
+        // delta is already in canvas-pixel units. No further scale conversion belongs here —
+        // an earlier version of this code divided by EffectiveZoom on top of this, which
+        // double-converted the delta and made drag-to-reposition move at the wrong rate at any
+        // zoom level other than 100%.
         var parent = control.Parent as Visual ?? control;
         var pos = e.GetPosition(parent);
-        var dx = (pos.X - _dragLastPointerPos.X) / _dragScale;
-        var dy = (pos.Y - _dragLastPointerPos.Y) / _dragScale;
+        var dx = pos.X - _dragLastPointerPos.X;
+        var dy = pos.Y - _dragLastPointerPos.Y;
         _dragLastPointerPos = pos;
 
         Vm?.MoveField(field, dx, dy);

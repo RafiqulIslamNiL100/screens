@@ -217,7 +217,7 @@
                     </StackPanel>
 
                     <TextBox IsVisible="{Binding !IsImage}" Text="{Binding Value, Mode=TwoWay}" Watermark="{Binding Field.Placeholder}"
-                              AcceptsReturn="{Binding Field.Multiline}" TextWrapping="Wrap"/>
+                              AcceptsReturn="{Binding Field.Multiline}" TextWrapping="Wrap" GotFocus="OnFieldTextBoxGotFocus"/>
                     <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding !IsImage}">
                       <TextBlock Grid.Column="0" Text="Will shrink to fit" Classes="muted" Foreground="{DynamicResource BrushPrimaryLight}" IsVisible="{Binding WillShrink}"/>
                       <TextBlock Grid.Column="1" Text="{Binding CounterText}" Classes="muted" HorizontalAlignment="Right" IsVisible="{Binding HasMaxLength}"/>
