@@ -47,7 +47,7 @@ Section "Screens (required)" SEC_MAIN
 
   ; Overwrite an existing install in place — silent /S is fully non-interactive.
   SetOverwrite on
-  File /r "..\src\Screens.App\bin\Release\net8.0\win-x64\publish\*.*"
+  File /r "..\src\Screens.App\bin\Release\net8.0-windows10.0.19041.0\win-x64\publish\*.*"
 
   WriteRegStr HKCU "Software\Screens" "Version" "${VERSION}"
   WriteRegStr HKCU "Software\Screens" "InstallDir" "$INSTDIR"

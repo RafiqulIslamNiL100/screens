@@ -13,7 +13,7 @@ param(
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $project = Join-Path $root "src\Screens.App\Screens.App.csproj"
-$publishDir = Join-Path $root "src\Screens.App\bin\Release\net8.0\win-x64\publish"
+$publishDir = Join-Path $root "src\Screens.App\bin\Release\net8.0-windows10.0.19041.0\win-x64\publish"
 
 Write-Host "Publishing Screens.App $Version (self-contained win-x64)..."
 dotnet publish $project -c Release -r win-x64 --self-contained true `

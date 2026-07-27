@@ -107,6 +107,32 @@ public partial class MainView : UserControl
             field.Value = "";
     }
 
+    private async void OnScanImageClicked(object? sender, RoutedEventArgs e)
+    {
+        if (Vm is not { } vm)
+            return;
+
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel is null)
+            return;
+
+        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Scan a picture",
+            AllowMultiple = false,
+            FileTypeFilter = new[]
+            {
+                new FilePickerFileType("Images") { Patterns = new[] { "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.webp" } },
+            },
+        });
+
+        var file = files.Count > 0 ? files[0] : null;
+        if (file is null)
+            return;
+
+        await vm.ScanImageAsync(file.Path.LocalPath);
+    }
+
     private static FilePickerFileType[] FileTypeChoices(ExportFormat requested) => requested switch
     {
         ExportFormat.Jpg => new[] { new FilePickerFileType("JPEG image") { Patterns = new[] { "*.jpg" } } },

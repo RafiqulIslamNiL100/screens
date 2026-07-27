@@ -25,10 +25,11 @@ public partial class App : Avalonia.Application
             var render = new RenderService(fonts);
             var update = new UpdateService(config);
             var loc = new LocalizationService();
+            var ocr = new OcrTemplateService(settings);
 
             var authVm = new AuthViewModel(auth, loc);
             var activationVm = new ActivationViewModel(license, loc);
-            var mainVm = new MainViewModel(templates, render, settings, update, fonts, license, loc);
+            var mainVm = new MainViewModel(templates, render, settings, update, fonts, license, loc, ocr);
             var shellVm = new ShellViewModel(auth, license, authVm, activationVm, mainVm);
 
             TrayIconController.Attach(this, mainVm);

@@ -2,18 +2,28 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <!-- windows10.0.19041.0 (not plain net8.0) so Windows.Media.Ocr — the free,
+         fully offline OCR engine built into Windows — is directly callable for
+         the "scan a picture" template feature. EnableWindowsTargeting lets this
+         still compile on non-Windows dev/CI machines (metadata-only reference
+         assemblies; no actual Windows install needed to build). -->
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <Nullable>enable</Nullable>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <AssemblyName>Screens</AssemblyName>
     <RootNamespace>Screens.App</RootNamespace>
-    <Version>1.2.1</Version>
-    <AssemblyVersion>1.2.1.0</AssemblyVersion>
-    <FileVersion>1.2.1.0</FileVersion>
+    <Version>1.3.0</Version>
+    <AssemblyVersion>1.3.0.0</AssemblyVersion>
+    <FileVersion>1.3.0.0</FileVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
     <ApplicationIcon>Assets\Icons\app.ico</ApplicationIcon>
+    <!-- The whole app only ever ships for Windows (win-x64), so the platform-compat
+         analyzer's "only supported on Windows" warnings for WinRT/Win32 calls are noise. -->
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

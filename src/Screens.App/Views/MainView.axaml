@@ -58,6 +58,14 @@
           <StackPanel Spacing="8">
             <TextBox Text="{Binding SearchText, Mode=TwoWay}" Watermark="{Binding SearchPlaceholder}" Margin="0,0,0,4"/>
 
+            <Button Content="Scan a picture…" Classes="secondary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    Click="OnScanImageClicked" IsEnabled="{Binding !IsScanningImage}"
+                    ToolTip.Tip="Upload a picture — detected text becomes editable fields you can replace"/>
+            <TextBlock Text="Scanning…" Classes="muted" HorizontalAlignment="Center" IsVisible="{Binding IsScanningImage}"/>
+            <TextBlock Text="{Binding ScanImageError}" Classes="muted" Foreground="{DynamicResource BrushDanger}" TextWrapping="Wrap"
+                        IsVisible="{Binding ScanImageError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+            <Border Height="1" Background="{DynamicResource BrushBorder}" Margin="0,4,0,4"/>
+
             <ItemsControl ItemsSource="{Binding RecentTemplates}" IsVisible="{Binding RecentTemplates.Count}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="models:TemplateManifest">

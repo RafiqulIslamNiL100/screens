@@ -22,6 +22,7 @@ public partial class MainViewModel : ViewModelBase
     private readonly UpdateService _update;
     private readonly FontRegistry _fonts;
     private readonly LicenseService _license;
+    private readonly OcrTemplateService _ocr;
     public LocalizationService Loc { get; }
 
     private CancellationTokenSource? _debounceCts;
@@ -67,7 +68,7 @@ public partial class MainViewModel : ViewModelBase
     public event EventHandler<SKBitmapHolder>? ClipboardExportRequested;
     public event EventHandler<ThemePreference>? ThemeChanged;
 
-    public MainViewModel(TemplateService templates, RenderService render, SettingsService settings, UpdateService update, FontRegistry fonts, LicenseService license, LocalizationService loc)
+    public MainViewModel(TemplateService templates, RenderService render, SettingsService settings, UpdateService update, FontRegistry fonts, LicenseService license, LocalizationService loc, OcrTemplateService ocr)
     {
         _templates = templates;
         _render = render;
@@ -75,6 +76,7 @@ public partial class MainViewModel : ViewModelBase
         _update = update;
         _fonts = fonts;
         _license = license;
+        _ocr = ocr;
         Loc = loc;
 
         var appSettings = _settings.Load();
@@ -442,6 +444,34 @@ public partial class MainViewModel : ViewModelBase
         LoadTemplates(newId);
         ToastMessage = $"Duplicated as \"{clone.Name}\"";
         ShowToast = true;
+    }
+
+    [ObservableProperty] private bool _isScanningImage;
+    [ObservableProperty] private string? _scanImageError;
+
+    public async Task ScanImageAsync(string sourceImagePath)
+    {
+        IsScanningImage = true;
+        ScanImageError = null;
+        try
+        {
+            var newId = await _ocr.ScanAsync(sourceImagePath);
+            LoadTemplates(newId);
+            ToastMessage = "Scanned — review the detected fields (font size/color are best-effort, nudge them in the field editor if needed).";
+            ShowToast = true;
+        }
+        catch (OcrTemplateService.ScanException ex)
+        {
+            ScanImageError = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            ScanImageError = $"Couldn't scan this picture: {ex.Message}";
+        }
+        finally
+        {
+            IsScanningImage = false;
+        }
     }
 
     [RelayCommand]

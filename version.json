@@ -1,7 +1,7 @@
 {
-  "version": "1.2.1",
-  "notes": "Fix: gallery clutter from duplicated templates (now deletable) and drag-to-reposition ignoring the current zoom level.",
-  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.2.1.exe",
-  "sha256": "3c49ebb76e417886b5b3018f6314f6923373d9d983b8dcd0834ff69e482ea72b",
+  "version": "1.3.0",
+  "notes": "New: \"Scan a picture\" — upload any image and Screens detects the text on it, erases it, and turns each line into an editable field you can replace (best-effort font size/color; not literal font matching).",
+  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.3.0.exe",
+  "sha256": "749f68509c016f535640fcccfc2127134d98f8d4c9bb21bb1676a17f5fd2fda5",
   "mandatory": false
 }
