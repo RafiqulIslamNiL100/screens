@@ -156,7 +156,7 @@
           <StackPanel Spacing="16">
             <TextBlock Text="Build a template" FontWeight="Bold"/>
             <TextBlock Classes="muted" TextWrapping="Wrap"
-                       Text="Drag directly on the photo to mark a region. Choose what you're marking first, then draw as many as you need."/>
+                       Text="Drag directly on the photo to mark a region. Choose what you're marking first, then draw as many as you need. For a text placeholder, draw the box a little larger than the text itself — that whole area gets replaced when you fill it in later, so anything left outside the box will still show through."/>
 
             <StackPanel Spacing="6">
               <RadioButton Content="Photo placeholder" GroupName="BuildMode" IsChecked="{Binding BuildDrawModeIsPhoto, Mode=TwoWay}"/>

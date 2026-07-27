@@ -11,6 +11,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Screens.App.Models;
 using Screens.App.Services;
+using SkiaSharp;
 
 namespace Screens.App.ViewModels;
 
@@ -106,7 +107,9 @@ public partial class MainViewModel : ViewModelBase
             Box = new FieldBox { X = x, Y = y, Width = width, Height = height },
             Align = "left",
             VerticalAlign = "middle",
-            Font = new FieldFont { Family = "Inter", Size = Math.Max(12, height * 0.45), Weight = "Regular" },
+            // Color and Weight are placeholders — SaveBuildTemplate overwrites both per text
+            // field by sampling the actual pixels under this box, right before erasing them.
+            Font = new FieldFont { Family = "Inter", Size = Math.Max(12, height * 0.72), Weight = "Regular" },
             Color = "#1A1028",
             AutoShrink = true,
             UserEditableColor = true,
@@ -139,11 +142,50 @@ public partial class MainViewModel : ViewModelBase
         var destDir = _settings.TemplatesDirectory;
         Directory.CreateDirectory(destDir);
 
-        var ext = Path.GetExtension(BuildPhotoPath);
-        if (string.IsNullOrEmpty(ext))
-            ext = ".png";
-        var imageName = $"{newId}{ext}";
-        File.Copy(BuildPhotoPath, Path.Combine(destDir, imageName), overwrite: true);
+        var textFields = BuildFields.Where(f => f.Type == "text").ToList();
+        string imageName;
+
+        if (textFields.Count == 0)
+        {
+            // No text regions marked — nothing needs to be erased, so the photo is copied
+            // byte-for-byte, exactly as imported, at whatever resolution/format it already was.
+            var ext = Path.GetExtension(BuildPhotoPath);
+            if (string.IsNullOrEmpty(ext))
+                ext = ".png";
+            imageName = $"{newId}{ext}";
+            File.Copy(BuildPhotoPath, Path.Combine(destDir, imageName), overwrite: true);
+        }
+        else
+        {
+            // At least one text region: sample its original color (and, relative to the other
+            // text regions here, whether it reads bolder than them) before erasing it — erasing
+            // first would sample the erased fill instead of the real text. Erasing is what makes
+            // typing a replacement value actually *replace* the baked-in text instead of drawing
+            // new text over/next to the old. This does mean the file is re-encoded as PNG
+            // (lossless) rather than byte-copied, since its pixels are genuinely being edited.
+            imageName = $"{newId}.png";
+            using var bitmap = SKBitmap.Decode(BuildPhotoPath)
+                ?? throw new InvalidOperationException("Could not read the imported photo.");
+
+            var boxes = textFields.Select(f => new SKRectI(
+                (int)f.Box.X, (int)f.Box.Y,
+                (int)(f.Box.X + f.Box.Width), (int)(f.Box.Y + f.Box.Height))).ToList();
+
+            var sampled = boxes.Select(b => PhotoRegionEraser.SampleTextColorAndDensity(bitmap, b)).ToList();
+            var medianInk = sampled.Select(s => s.InkRatio).OrderBy(v => v).ElementAt(sampled.Count / 2);
+
+            for (var i = 0; i < textFields.Count; i++)
+            {
+                textFields[i].Color = sampled[i].Color;
+                textFields[i].Font.Weight = medianInk > 0 && sampled[i].InkRatio > medianInk * 1.3 ? "Bold" : "Regular";
+                PhotoRegionEraser.Erase(bitmap, boxes[i]);
+            }
+
+            using var fs = File.Create(Path.Combine(destDir, imageName));
+            using var image = SKImage.FromBitmap(bitmap);
+            using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+            data.SaveTo(fs);
+        }
 
         var manifest = new TemplateManifest
         {

@@ -16,9 +16,9 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <AssemblyName>Screens</AssemblyName>
     <RootNamespace>Screens.App</RootNamespace>
-    <Version>1.6.1</Version>
-    <AssemblyVersion>1.6.1.0</AssemblyVersion>
-    <FileVersion>1.6.1.0</FileVersion>
+    <Version>1.7.0</Version>
+    <AssemblyVersion>1.7.0.0</AssemblyVersion>
+    <FileVersion>1.7.0.0</FileVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
     <ApplicationIcon>Assets\Icons\app.ico</ApplicationIcon>
     <!-- The whole app only ever ships for Windows (win-x64), so the platform-compat

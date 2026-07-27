@@ -1,7 +1,7 @@
 {
-  "version": "1.6.1",
-  "notes": "Fix: Build a Template drew placeholder regions in the wrong place (stray boxes at the top of the canvas). Fix: drag-to-reposition moved fields at the wrong rate at any zoom other than 100%. Fix: clicking into a text field now selects its existing text so typing replaces it instead of merging with it.",
-  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.6.1.exe",
-  "sha256": "8a9558e049539ee9bf7bb81addfcab2f91b0fe8751f9ce62f6d4c419aef396eb",
+  "version": "1.7.0",
+  "notes": "Fix: \"Build a template\" text placeholders now actually erase the original baked-in text (sampling its real color, and whether it's bold) before you replace it — previously your typed text was drawn without removing what was underneath.",
+  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.7.0.exe",
+  "sha256": "105cafee092c1a77353876aa9c0c85634217c46c285c86e0012752b99d83a434",
   "mandatory": false
 }
