@@ -1,0 +1,29 @@
+{
+  "id": "prank-status-bar",
+  "name": "Prank Status Bar (Just for Fun)",
+  "category": "Prank",
+  "image": "prank-status-bar.png",
+  "canvas": { "width": 1200, "height": 900 },
+  "fields": [
+    {
+      "id": "caption",
+      "type": "text",
+      "label": "Your joke caption",
+      "default": "This is a joke — your real status bar is fine.",
+      "placeholder": "This is a joke — your real status bar is fine.",
+      "maxLength": 120,
+      "multiline": true,
+      "box": { "x": 110, "y": 300, "width": 980, "height": 440 },
+      "align": "center",
+      "verticalAlign": "middle",
+      "font": { "family": "Inter", "size": 48, "weight": "Bold", "italic": false },
+      "color": "#7C3AED",
+      "lineHeight": 1.3,
+      "letterSpacing": 0,
+      "uppercase": false,
+      "autoShrink": true,
+      "userEditableColor": true,
+      "userEditableSize": true
+    }
+  ]
+}

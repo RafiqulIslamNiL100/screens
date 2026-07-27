@@ -5,7 +5,10 @@ original geometric artwork, no stock imagery). Run from this directory:
 Outputs land next to this script; only the PNGs ship in the app.
 """
 import math
-from PIL import Image, ImageDraw
+import os
+from PIL import Image, ImageDraw, ImageFont
+
+FONTS_DIR = os.path.join(os.path.dirname(__file__), "..", "Fonts")
 
 PRIMARY = (124, 58, 237)       # #7C3AED
 PRIMARY_DARK = (109, 40, 217)  # #6D28D9
@@ -208,6 +211,120 @@ def phone_mockup():
     save(img, "phone-mockup.png")
 
 
+def _hsv_rainbow(t):
+    """t in [0,1) -> a saturated RGB color cycling through the rainbow."""
+    import colorsys
+    r, g, b = colorsys.hsv_to_rgb(t % 1.0, 0.85, 0.95)
+    return (int(r * 255), int(g * 255), int(b * 255))
+
+
+def _draw_rotated_text(base, text, font, fill, angle, center):
+    """Draws text onto a transparent layer, rotates it, and composites it onto base
+    centered at `center` — PIL can't draw text at an angle directly onto a normal image."""
+    layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    d.text((0, 0), text, font=font, fill=fill)
+    bbox = d.textbbox((0, 0), text, font=font)
+    w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    tile = layer.crop((bbox[0], bbox[1], bbox[2], bbox[3])).rotate(angle, expand=True, resample=Image.BICUBIC)
+    base.alpha_composite(tile, (int(center[0] - tile.width / 2), int(center[1] - tile.height / 2)))
+
+
+# 10. Prank status bar — an intentionally, unmissably fake "screenshot" for pranking a
+# friend: every value is impossible (1000% battery, 11 signal bars, a joke carrier name,
+# "Overclocking" instead of a real charging state) and the joke is disclosed directly in
+# the image itself (a tiled rainbow "FAKE FOR FUN" watermark plus a permanent caption) so
+# it can never be mistaken for — or repurposed as — a real status bar. Deliberately the
+# opposite of realistic: see DECISIONS.md for why a *realistic* fake-status-bar generator
+# was declined and this is what got built instead.
+def prank_status_bar():
+    w, h = 1200, 900
+    img = vertical_gradient((w, h), (255, 245, 250), (240, 250, 255)).convert("RGBA")
+
+    bold = ImageFont.truetype(os.path.join(FONTS_DIR, "Inter-Bold.ttf"), 40)
+    bold_lg = ImageFont.truetype(os.path.join(FONTS_DIR, "Inter-Bold.ttf"), 64)
+    bold_sm = ImageFont.truetype(os.path.join(FONTS_DIR, "Inter-Bold.ttf"), 30)
+
+    # Tiled diagonal rainbow "FAKE FOR FUN" watermark, unmissable and unremovable
+    # (baked into the background pixels, not a field — nothing in the manifest can hide it).
+    for row in range(5):
+        for col in range(4):
+            t = (row * 4 + col) / 20
+            _draw_rotated_text(
+                img, "FAKE FOR FUN", bold, _hsv_rainbow(t) + (110,), -22,
+                (col * 340 - 60, row * 210 + 60),
+            )
+
+    # Rainbow border frame — another instant "this isn't real" signal.
+    stripe = 14
+    for i in range(w // stripe + 1):
+        color = _hsv_rainbow(i / 14)
+        ImageDraw.Draw(img).rectangle([i * stripe, 0, i * stripe + stripe, stripe], fill=color)
+        ImageDraw.Draw(img).rectangle([i * stripe, h - stripe, i * stripe + stripe, h], fill=color)
+    for i in range(h // stripe + 1):
+        color = _hsv_rainbow(i / 10)
+        ImageDraw.Draw(img).rectangle([0, i * stripe, stripe, i * stripe + stripe], fill=color)
+        ImageDraw.Draw(img).rectangle([w - stripe, i * stripe, w, i * stripe + stripe], fill=color)
+
+    # Status bar strip with absurd, physically-impossible readings.
+    bar_top, bar_h = 40, 150
+    draw = ImageDraw.Draw(img)
+    draw.rounded_rectangle([40, bar_top, w - 40, bar_top + bar_h], radius=24, fill=(20, 16, 30))
+
+    # Impossible time.
+    draw.text((70, bar_top + 40), "13:69", font=bold_lg, fill=WHITE)
+
+    # A little procedural clown face (not a unicode emoji, so it always renders) next to the time.
+    fx, fy, fr = 330, bar_top + 80, 40
+    # Poofy rainbow hair tufts (wide + round, not pointed, so they read as hair, not horns).
+    for i, hcol in enumerate([_hsv_rainbow(0.0), _hsv_rainbow(0.3), _hsv_rainbow(0.55), _hsv_rainbow(0.85)]):
+        hx = fx - 42 + i * 28
+        draw.ellipse([hx - 18, fy - fr - 16, hx + 18, fy - fr + 20], fill=hcol)
+    draw.ellipse([fx - fr, fy - fr, fx + fr, fy + fr], fill=(255, 224, 189))
+    draw.ellipse([fx - 18, fy - 6, fx - 6, fy + 6], fill=SURFACE_DARK)
+    draw.ellipse([fx + 6, fy - 6, fx + 18, fy + 6], fill=SURFACE_DARK)
+    draw.ellipse([fx - 9, fy + 1, fx + 9, fy + 19], fill=(220, 30, 90))
+    draw.arc([fx - 22, fy + 10, fx + 22, fy + 32], start=20, end=160, fill=(220, 30, 90), width=5)
+
+    # "NASA Deep Space" carrier name, dead center.
+    carrier = "NASA DEEP SPACE"
+    cb = draw.textbbox((0, 0), carrier, font=bold_sm)
+    draw.text((w / 2 - (cb[2] - cb[0]) / 2, bar_top + 20), carrier, font=bold_sm, fill=(180, 220, 255))
+
+    # 11 signal bars (no real phone shows more than 4-5) fanned out in rainbow colors.
+    bx = w - 520
+    for i in range(11):
+        bar_height = 14 + i * 9
+        color = _hsv_rainbow(i / 11)
+        draw.rounded_rectangle(
+            [bx + i * 16, bar_top + bar_h - 24 - bar_height, bx + i * 16 + 10, bar_top + bar_h - 24],
+            radius=3, fill=color,
+        )
+
+    # Battery reading 1000%, "Overclocking" instead of a real charging state.
+    batt_x = w - 190
+    draw.rounded_rectangle([batt_x, bar_top + 45, batt_x + 100, bar_top + 95], radius=8, outline=WHITE, width=4)
+    draw.rectangle([batt_x + 100, bar_top + 58, batt_x + 108, bar_top + 82], fill=WHITE)
+    draw.polygon(
+        [(batt_x + 55, bar_top + 48), (batt_x + 35, bar_top + 70), (batt_x + 52, bar_top + 70),
+         (batt_x + 45, bar_top + 92), (batt_x + 70, bar_top + 63), (batt_x + 53, bar_top + 63)],
+        fill=_hsv_rainbow(0.15),
+    )
+    batt_label = "1000% · Overclocking"
+    lb = draw.textbbox((0, 0), batt_label, font=bold_sm)
+    draw.text((w - 60 - (lb[2] - lb[0]), bar_top + bar_h + 12), batt_label, font=bold_sm, fill=_hsv_rainbow(0.1))
+
+    # Bottom card: an editable joke-caption field lives here (see the manifest); a second,
+    # permanent disclosure is baked in right below it so the joke survives even if the
+    # editable caption is cleared out.
+    draw.rounded_rectangle([70, 260, w - 70, h - 110], radius=28, fill=(255, 255, 255, 235))
+    permanent = "OBVIOUSLY FAKE — JUST FOR LAUGHS"
+    pb = draw.textbbox((0, 0), permanent, font=bold_sm)
+    draw.text((w / 2 - (pb[2] - pb[0]) / 2, h - 80), permanent, font=bold_sm, fill=_hsv_rainbow(0.8))
+
+    save(img.convert("RGB"), "prank-status-bar.png")
+
+
 if __name__ == "__main__":
     cert_classic()
     badge_lanyard()
@@ -218,3 +335,4 @@ if __name__ == "__main__":
     realestate_card()
     award_employee()
     phone_mockup()
+    prank_status_bar()
