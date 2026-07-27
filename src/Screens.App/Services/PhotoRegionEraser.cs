@@ -57,20 +57,56 @@ public static class PhotoRegionEraser
         return ($"#{r:X2}{g:X2}{b:X2}", inkRatio);
     }
 
-    /// <summary>Flat-fill erase: samples the median color of a thin ring just outside the box and
-    /// paints over the box with it. Good enough for solid/gradient backgrounds; leaves a visible
-    /// patch on photographic ones (documented limitation, same tier as the phone-mockup corner clip).</summary>
+    /// <summary>Erases a region by filling it with a color derived from its immediate
+    /// surroundings — a flat color if the surroundings are roughly uniform, or a linear gradient
+    /// matched to the surroundings' own direction if they're not, which is the common case for
+    /// this app's own bundled templates (most of their backgrounds are exactly a top-to-bottom or
+    /// diagonal gradient — see generate_templates.py's vertical_gradient/diagonal_gradient — so a
+    /// flat fill there used to leave a visible seam at the box edges). Still not real inpainting:
+    /// a genuinely textured or photographic background will still show a visible patch, since a
+    /// two-stop gradient can't approximate a texture — that limitation is unchanged.</summary>
     public static void Erase(SKBitmap bitmap, SKRectI box)
     {
-        var ringColor = SampleRingColor(bitmap, box);
+        var top = SampleEdge(bitmap, box, top: true, left: false);
+        var bottom = SampleEdge(bitmap, box, top: false, left: false);
+        var left = SampleEdge(bitmap, box, top: false, left: true, vertical: false);
+        var right = SampleEdge(bitmap, box, top: false, left: false, vertical: false);
+
         using var canvas = new SKCanvas(bitmap);
-        using var paint = new SKPaint { Color = ringColor, IsAntialias = false };
-        canvas.DrawRect(new SKRect(box.Left, box.Top, box.Right, box.Bottom), paint);
+        var rect = new SKRect(box.Left, box.Top, box.Right, box.Bottom);
+
+        var verticalDiff = ColorDistance(top, bottom);
+        var horizontalDiff = ColorDistance(left, right);
+        const double gradientThreshold = 10.0; // below this, the two edges are "the same color" (flat background)
+
+        using var paint = new SKPaint { IsAntialias = false };
+        if (verticalDiff < gradientThreshold && horizontalDiff < gradientThreshold)
+        {
+            // Flat background (or too subtle a gradient to bother matching): one averaged color,
+            // the original behavior.
+            paint.Color = Average(top, bottom, left, right);
+        }
+        else if (verticalDiff >= horizontalDiff)
+        {
+            paint.Shader = SKShader.CreateLinearGradient(
+                new SKPoint(rect.MidX, rect.Top), new SKPoint(rect.MidX, rect.Bottom),
+                new[] { top, bottom }, null, SKShaderTileMode.Clamp);
+        }
+        else
+        {
+            paint.Shader = SKShader.CreateLinearGradient(
+                new SKPoint(rect.Left, rect.MidY), new SKPoint(rect.Right, rect.MidY),
+                new[] { left, right }, null, SKShaderTileMode.Clamp);
+        }
+
+        canvas.DrawRect(rect, paint);
     }
 
-    private static SKColor SampleRingColor(SKBitmap bitmap, SKRectI box)
+    /// <summary>Median color along one edge of the box, sampled from a band just outside it (6-30px
+    /// out, not a single thin line) so a small amount of noise/texture in the surrounding art gets
+    /// smoothed out rather than picking one unlucky pixel.</summary>
+    private static SKColor SampleEdge(SKBitmap bitmap, SKRectI box, bool top, bool left, bool vertical = true)
     {
-        const int ring = 6;
         var samples = new List<SKColor>();
         void Sample(int x, int y)
         {
@@ -78,17 +114,19 @@ public static class PhotoRegionEraser
                 samples.Add(bitmap.GetPixel(x, y));
         }
 
-        var stepX = Math.Max(1, box.Width / 20);
-        for (var x = box.Left; x < box.Right; x += stepX)
+        if (vertical)
         {
-            Sample(x, box.Top - ring);
-            Sample(x, box.Bottom + ring);
+            var stepX = Math.Max(1, box.Width / 24);
+            for (var x = box.Left; x < box.Right; x += stepX)
+                for (var d = 6; d <= 30; d += 8)
+                    Sample(x, top ? box.Top - d : box.Bottom + d);
         }
-        var stepY = Math.Max(1, box.Height / 10);
-        for (var y = box.Top; y < box.Bottom; y += stepY)
+        else
         {
-            Sample(box.Left - ring, y);
-            Sample(box.Right + ring, y);
+            var stepY = Math.Max(1, box.Height / 12);
+            for (var y = box.Top; y < box.Bottom; y += stepY)
+                for (var d = 6; d <= 30; d += 8)
+                    Sample(left ? box.Left - d : box.Right + d, y);
         }
 
         if (samples.Count == 0)
@@ -99,4 +137,17 @@ public static class PhotoRegionEraser
         var b = (byte)samples.Average(c => c.Blue);
         return new SKColor(r, g, b);
     }
+
+    private static double ColorDistance(SKColor a, SKColor b)
+    {
+        var dr = a.Red - b.Red;
+        var dg = a.Green - b.Green;
+        var db = a.Blue - b.Blue;
+        return Math.Sqrt(dr * dr + dg * dg + db * db);
+    }
+
+    private static SKColor Average(params SKColor[] colors) => new(
+        (byte)colors.Average(c => c.Red),
+        (byte)colors.Average(c => c.Green),
+        (byte)colors.Average(c => c.Blue));
 }

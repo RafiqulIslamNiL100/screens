@@ -1,7 +1,7 @@
 {
-  "version": "1.9.1",
-  "notes": "Refined Premium Templates: gallery tiles now show a real thumbnail of each template; opening the gallery also re-downloads anything the admin has re-shipped a newer version of, so cached copies never go stale; and Premium access now shows the same days-remaining countdown + renew link the app license already had.",
-  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.9.1.exe",
-  "sha256": "0d89b47fd6c48b12c4077ca1ba984dadfc70a573fe0a5f266f94875170333404",
+  "version": "1.10.0",
+  "notes": "Improved Scan/Build erase quality: text erased from a gradient background (most bundled templates use one) now blends almost seamlessly instead of leaving a flat-color patch. Scan also skips single-character noise detections that were never meaningful editable text.",
+  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.10.0.exe",
+  "sha256": "4b771cf59dbde0d9b1ccc9b150048ea7fe361c867e4f9c0a4fb465db2c79140b",
   "mandatory": false
 }

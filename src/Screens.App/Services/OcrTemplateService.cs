@@ -89,6 +89,11 @@ public sealed class OcrTemplateService
         {
             if (line.Words.Count == 0 || string.IsNullOrWhiteSpace(line.Text))
                 continue;
+            // A single stray character is rarely meaningful editable content — far more often
+            // it's OCR latching onto a stray mark, a decorative rule, or a partial icon glyph.
+            // Trimmed so " a " (whitespace either side) doesn't slip through as "2 characters."
+            if (line.Text.Trim().Length < 2)
+                continue;
             var box = UnionRect(line);
             if (box.Height < minLineHeight || box.Width < minLineWidth)
                 continue;
