@@ -25,7 +25,9 @@ namespace Screens.App.Services;
 /// Two things this deliberately does NOT do, by nature of the approach:
 ///   - font *identification*. There's no offline, license-free way to match
 ///     pixels back to a specific font family, so every field defaults to the
-///     bundled Inter typeface sized to the detected line height, with
+///     bundled Inter typeface sized to the detected line height (bold vs.
+///     regular weight is approximated per line — see the ink-density comment
+///     below — but the family itself is never identified), with
 ///     UserEditableColor/Size left on so the user can nudge it to match.
 ///   - real inpainting. The erase step fills each text box with a flat color
 ///     sampled from its immediate surroundings, which reads cleanly on
@@ -94,6 +96,20 @@ public sealed class OcrTemplateService
             rawBoxes.Add(box);
         }
 
+        // Sample color + ink density for every line before building fields. Ink density (fraction
+        // of the box that's glyph-colored rather than background) is a rough proxy for stroke
+        // weight — not reliable as an absolute number (it depends on the text itself, e.g. "iiii"
+        // vs "MMMM"), but reliable *relative to the rest of the same image*: a heading rendered in
+        // a bold weight reads as noticeably denser than the body text around it in the same font.
+        // Lines whose density is well above the image's median are treated as bold.
+        var textInfo = new (string Color, double InkRatio)[lines.Count];
+        for (var i = 0; i < lines.Count; i++)
+            textInfo[i] = SampleTextColorAndDensity(background, rawBoxes[i]);
+
+        var medianInk = textInfo.Length > 0
+            ? textInfo.Select(t => t.InkRatio).OrderBy(v => v).ElementAt(textInfo.Length / 2)
+            : 0.0;
+
         var fields = new List<TemplateField>();
         for (var i = 0; i < lines.Count; i++)
         {
@@ -101,8 +117,9 @@ public sealed class OcrTemplateService
             var box = rawBoxes[i];
             var padded = ClampedPad(box, rawBoxes, i, background.Width, background.Height);
 
-            var color = SampleTextColor(background, box);
             EraseRegion(background, padded);
+
+            var isBold = medianInk > 0 && textInfo[i].InkRatio > medianInk * 1.3;
 
             fields.Add(new TemplateField
             {
@@ -114,8 +131,8 @@ public sealed class OcrTemplateService
                 Box = new FieldBox { X = padded.Left, Y = padded.Top, Width = padded.Width, Height = padded.Height },
                 Align = "left",
                 VerticalAlign = "middle",
-                Font = new FieldFont { Family = "Inter", Size = Math.Max(8, box.Height * 0.72), Weight = "Regular" },
-                Color = color,
+                Font = new FieldFont { Family = "Inter", Size = Math.Max(8, box.Height * 0.72), Weight = isBold ? "Bold" : "Regular" },
+                Color = textInfo[i].Color,
                 AutoShrink = true,
                 UserEditableColor = true,
                 UserEditableSize = true,
@@ -220,9 +237,11 @@ public sealed class OcrTemplateService
         return new SKRectI((int)left, (int)top, (int)right, (int)bottom);
     }
 
-    /// <summary>Approximates the original text color from the darkest (highest-contrast) pixels
-    /// inside the detected box — text is usually the highest-contrast content in its own box.</summary>
-    private static string SampleTextColor(SKBitmap bitmap, SKRectI box)
+    /// <summary>Approximates the original text color from the darkest/lightest (highest-contrast)
+    /// pixels inside the detected box — text is usually the highest-contrast content in its own
+    /// box — and returns how much of the box those glyph pixels cover (see the ink-density comment
+    /// at the call site for what that's used for).</summary>
+    private static (string Color, double InkRatio) SampleTextColorAndDensity(SKBitmap bitmap, SKRectI box)
     {
         var samples = new List<(byte r, byte g, byte b, double luma)>();
         var stepX = Math.Max(1, box.Width / 40);
@@ -238,7 +257,7 @@ public sealed class OcrTemplateService
             }
         }
         if (samples.Count == 0)
-            return "#1A1028";
+            return ("#1A1028", 0.0);
 
         var avgLuma = samples.Average(s => s.luma);
         var darker = samples.Where(s => s.luma < avgLuma).ToList();
@@ -248,12 +267,13 @@ public sealed class OcrTemplateService
             : lighter.Count > 0 && lighter.Count < darker.Count ? lighter
             : darker.Count > 0 ? darker : lighter;
         if (textPixels.Count == 0)
-            return "#1A1028";
+            return ("#1A1028", 0.0);
 
         var r = (byte)textPixels.Average(s => s.r);
         var g = (byte)textPixels.Average(s => s.g);
         var b = (byte)textPixels.Average(s => s.b);
-        return $"#{r:X2}{g:X2}{b:X2}";
+        var inkRatio = (double)textPixels.Count / samples.Count;
+        return ($"#{r:X2}{g:X2}{b:X2}", inkRatio);
     }
 
     /// <summary>Flat-fill erase: samples the median color of a thin ring just outside the box and
