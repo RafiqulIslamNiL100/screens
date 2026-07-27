@@ -18,6 +18,7 @@ public partial class ShellViewModel : ViewModelBase
     private readonly AuthService _auth;
     private readonly LicenseService _license;
     private readonly PremiumAccessService _premiumAccess;
+    private readonly PremiumAdminService _premiumAdmin;
 
     [ObservableProperty] private ShellScreen _screen = ShellScreen.Splash;
     [ObservableProperty] private bool _showOfflineGraceBanner;
@@ -26,11 +27,12 @@ public partial class ShellViewModel : ViewModelBase
     public ActivationViewModel ActivationViewModel { get; }
     public MainViewModel MainViewModel { get; }
 
-    public ShellViewModel(AuthService auth, LicenseService license, PremiumAccessService premiumAccess, AuthViewModel authVm, ActivationViewModel activationVm, MainViewModel mainVm)
+    public ShellViewModel(AuthService auth, LicenseService license, PremiumAccessService premiumAccess, PremiumAdminService premiumAdmin, AuthViewModel authVm, ActivationViewModel activationVm, MainViewModel mainVm)
     {
         _auth = auth;
         _license = license;
         _premiumAccess = premiumAccess;
+        _premiumAdmin = premiumAdmin;
         AuthViewModel = authVm;
         ActivationViewModel = activationVm;
         MainViewModel = mainVm;
@@ -78,6 +80,11 @@ public partial class ShellViewModel : ViewModelBase
         // yet should still land on Main once the app itself is licensed, so this must never
         // gate Screen the way _license.State.IsActive does.
         await _premiumAccess.InitializeAsync();
+        // Independent of the license/premium-access gates on purpose — admin status is a
+        // separate, orthogonal thing from either kind of key, so a signed-in admin without any
+        // app license still shouldn't see the publish button before they're even on the Main
+        // screen, but checking it here (rather than lazily) means it's ready the instant they are.
+        MainViewModel.IsAdmin = await _premiumAdmin.CheckIsAdminAsync();
         Screen = _license.State.IsActive ? ShellScreen.Main : ShellScreen.Activation;
         if (Screen == ShellScreen.Main)
             await MainViewModel.CheckForUpdatesOnStartupAsync();

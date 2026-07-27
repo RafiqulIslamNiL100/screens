@@ -26,6 +26,36 @@ Supabase dashboard** — everything else already works.
    (Authentication → Settings); either setting works with the app's sign-up
    flow.
 
+## 1b. Make an account an admin (Premium Templates publishing)
+
+Since v1.11.0, an admin builds a template in the desktop app itself and
+publishes it straight to the Premium Templates catalog with one button
+(Settings → **Publish as Premium Template**) — no export-file-then-git-commit
+step needed anymore. That button only appears for accounts in the
+`public.admins` table, and the only way into that table is a manual SQL
+statement run with your own project credentials (never through the app or
+`admin.html` — see `db/schema.sql`'s comment on why this is deliberately not
+self-service).
+
+1. Sign up for the admin account in the Screens app itself first (Auth
+   screen → "Create an account"), e.g. `admin@screen.inc`. This is what
+   creates the `auth.users` row `admins` needs to reference.
+2. In the Supabase SQL editor, run:
+   ```sql
+   insert into public.admins (user_id)
+   select id from auth.users where email = 'admin@screen.inc'
+   on conflict (user_id) do nothing;
+   ```
+3. Sign in as that account in the app. Once signed in, any template you build
+   or scan shows a **Publish as Premium Template** button in Settings —
+   uploads the manifest+image to the `premium-templates` Storage bucket and
+   upserts its catalog row, live for every user with a `premium_templates`
+   key the moment they next open the gallery. Republishing the same
+   template's id automatically bumps its version, so existing users'
+   already-cached copies are detected as stale and re-downloaded.
+
+To revoke admin access, delete the row: `delete from public.admins where user_id = '<uuid>';`
+
 ## 2. admin.html has no login (by request)
 
 `admin.html` does **not** require a Supabase account or sign-in — it only

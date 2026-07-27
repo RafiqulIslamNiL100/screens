@@ -28,11 +28,12 @@ public partial class App : Avalonia.Application
             var ocr = new OcrTemplateService(settings);
             var premiumAccess = new PremiumAccessService(auth, config, settings);
             var premiumSync = new PremiumTemplateSyncService(config, settings);
+            var premiumAdmin = new PremiumAdminService(auth, config);
 
             var authVm = new AuthViewModel(auth, loc);
             var activationVm = new ActivationViewModel(license, loc);
-            var mainVm = new MainViewModel(templates, render, settings, update, fonts, license, loc, ocr, premiumAccess, premiumSync);
-            var shellVm = new ShellViewModel(auth, license, premiumAccess, authVm, activationVm, mainVm);
+            var mainVm = new MainViewModel(templates, render, settings, update, fonts, license, loc, ocr, premiumAccess, premiumSync, premiumAdmin);
+            var shellVm = new ShellViewModel(auth, license, premiumAccess, premiumAdmin, authVm, activationVm, mainVm);
 
             TrayIconController.Attach(this, mainVm);
 

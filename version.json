@@ -1,7 +1,7 @@
 {
-  "version": "1.10.0",
-  "notes": "Improved Scan/Build erase quality: text erased from a gradient background (most bundled templates use one) now blends almost seamlessly instead of leaving a flat-color patch. Scan also skips single-character noise detections that were never meaningful editable text.",
-  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.10.0.exe",
-  "sha256": "4b771cf59dbde0d9b1ccc9b150048ea7fe361c867e4f9c0a4fb465db2c79140b",
+  "version": "1.11.0",
+  "notes": "Admins can now publish Premium Templates directly from inside the app (Settings → Publish as Premium Template) — no more exporting a file and hand-committing it to GitHub. The catalog moved to Supabase (Storage + a database table), gated by an admin flag only the project owner can grant. Also added an editable custom watermark text (previously fixed to \"Made with Screens\"), and a scan/build erase-quality fix for text boxes that sit close to a differently colored edge (a card, an icon).",
+  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.11.0.exe",
+  "sha256": "63d757915b0ed14b6b5ae113e7b07e562a728d18007cdc89401a5d39907de228",
   "mandatory": false
 }

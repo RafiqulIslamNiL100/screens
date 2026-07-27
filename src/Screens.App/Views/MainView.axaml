@@ -352,7 +352,11 @@
             </StackPanel>
           </StackPanel>
 
-          <CheckBox Content="{Binding WatermarkLabel}" IsChecked="{Binding WatermarkEnabled, Mode=TwoWay}"/>
+          <StackPanel Spacing="6">
+            <CheckBox Content="{Binding WatermarkLabel}" IsChecked="{Binding WatermarkEnabled, Mode=TwoWay}"/>
+            <TextBox Text="{Binding WatermarkText, Mode=TwoWay}" Watermark="{Binding WatermarkTextPlaceholder}"
+                     IsEnabled="{Binding WatermarkEnabled}" Margin="24,0,0,0"/>
+          </StackPanel>
 
           <StackPanel Spacing="6">
             <TextBlock Text="{Binding ExportPresetsLabel}" Classes="muted"/>
@@ -405,6 +409,13 @@
 
           <Button Content="Export template package…" Classes="secondary" HorizontalAlignment="Left" Click="OnExportTemplatePackageClicked"
                   ToolTip.Tip="Copies the currently selected template's manifest+image, unmodified, to a folder — for shipping it as a Premium Template"/>
+
+          <Button Content="{Binding PublishPremiumTemplateLabel}" Classes="primary" HorizontalAlignment="Left"
+                  IsVisible="{Binding IsAdmin}"
+                  IsEnabled="{Binding CanPublishSelectedAsPremiumTemplate}"
+                  Command="{Binding PublishSelectedAsPremiumTemplateCommand}"
+                  ToolTip.Tip="Uploads the currently selected template straight to the Premium Templates catalog — live for every user with an access key immediately, no GitHub step needed"/>
+          <TextBlock Text="Publishing…" Classes="muted" IsVisible="{Binding IsPublishingPremiumTemplate}"/>
 
           <Button Content="{Binding SignOutLabel}" Classes="secondary" Click="OnSignOutClicked" HorizontalAlignment="Left"/>
         </StackPanel>

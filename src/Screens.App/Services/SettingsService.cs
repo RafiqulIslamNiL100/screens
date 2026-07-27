@@ -28,6 +28,9 @@ public sealed class AppSettings
     public Dictionary<string, Dictionary<string, string>> Drafts { get; set; } = new();
     public List<ExportPreset> ExportPresets { get; set; } = new();
     public bool WatermarkEnabled { get; set; }
+    /// <summary>Null/empty means "use the default text" (Made with Screens) — kept distinct
+    /// from a value the user cleared on purpose so the render falls back correctly either way.</summary>
+    public string? WatermarkText { get; set; }
     public bool SnapToGridEnabled { get; set; } = true;
 }
 

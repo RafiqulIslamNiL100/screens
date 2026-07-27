@@ -114,3 +114,105 @@ end;
 $$;
 
 grant execute on function public.redeem_key(text) to authenticated;
+
+-- ---------------------------------------------------------------------
+-- Admins: who can publish Premium Templates directly from the desktop app
+-- (Settings → "Publish as Premium Template…"), instead of the old
+-- export-file-then-hand-commit-to-GitHub workflow.
+-- ---------------------------------------------------------------------
+create table if not exists public.admins (
+  user_id uuid primary key references auth.users(id) on delete cascade
+);
+
+alter table public.admins enable row level security;
+
+-- A signed-in user can check only their own membership (the app uses this to
+-- decide whether to show the publish button) — never the whole list, and
+-- never write access through the API. Membership is granted only by
+-- running an INSERT by hand in the Supabase SQL editor (see docs/SETUP.md)
+-- using the project owner's own credentials, which bypass RLS there — so
+-- there is no self-service path to becoming an admin, unlike the anon-key
+-- tables above where that tradeoff was already accepted for admin.html.
+drop policy if exists "user checks own admin status" on public.admins;
+create policy "user checks own admin status"
+  on public.admins
+  for select
+  to authenticated
+  using (user_id = auth.uid());
+
+grant select on public.admins to authenticated;
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (select 1 from public.admins where user_id = auth.uid());
+$$;
+
+grant execute on function public.is_admin() to authenticated;
+
+-- ---------------------------------------------------------------------
+-- Premium Templates catalog. Replaces the old premium-templates/index.json
+-- file hosted in the screens-fnl-app GitHub repo — same shape, same "public,
+-- unauthenticated read" posture (none of this is sensitive, it's the exact
+-- content that used to sit in a public repo), but now writable directly by
+-- an admin from inside the app instead of requiring a git commit.
+-- ---------------------------------------------------------------------
+create table if not exists public.premium_templates_catalog (
+  id            text primary key,
+  name          text not null,
+  category      text not null default '',
+  manifest_file text not null,
+  image_file    text not null,
+  version       integer not null default 1,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+alter table public.premium_templates_catalog enable row level security;
+
+drop policy if exists "anyone reads catalog" on public.premium_templates_catalog;
+create policy "anyone reads catalog"
+  on public.premium_templates_catalog
+  for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "admins write catalog" on public.premium_templates_catalog;
+create policy "admins write catalog"
+  on public.premium_templates_catalog
+  for all
+  to authenticated
+  using (is_admin())
+  with check (is_admin());
+
+grant select on public.premium_templates_catalog to anon, authenticated;
+grant insert, update, delete on public.premium_templates_catalog to authenticated;
+
+-- ---------------------------------------------------------------------
+-- Storage bucket for the actual template files (manifest JSON + background
+-- image) that premium_templates_catalog.manifest_file/image_file name.
+-- Public read (fetched the same way version.json/the installer always
+-- were — plain HTTPS, no auth), admin-only write.
+-- ---------------------------------------------------------------------
+insert into storage.buckets (id, name, public)
+values ('premium-templates', 'premium-templates', true)
+on conflict (id) do nothing;
+
+drop policy if exists "anyone reads premium-templates bucket" on storage.objects;
+create policy "anyone reads premium-templates bucket"
+  on storage.objects
+  for select
+  to anon, authenticated
+  using (bucket_id = 'premium-templates');
+
+drop policy if exists "admins write premium-templates bucket" on storage.objects;
+create policy "admins write premium-templates bucket"
+  on storage.objects
+  for all
+  to authenticated
+  using (bucket_id = 'premium-templates' and is_admin())
+  with check (bucket_id = 'premium-templates' and is_admin());

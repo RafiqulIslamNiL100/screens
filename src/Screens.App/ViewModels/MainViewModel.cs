@@ -26,6 +26,7 @@ public partial class MainViewModel : ViewModelBase
     private readonly OcrTemplateService _ocr;
     private readonly PremiumAccessService _premiumAccess;
     private readonly PremiumTemplateSyncService _premiumSync;
+    private readonly PremiumAdminService _premiumAdmin;
     public LocalizationService Loc { get; }
 
     private CancellationTokenSource? _debounceCts;
@@ -50,6 +51,7 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private string _currentVersionText = $"Version {UpdateService.CurrentVersion}";
     [ObservableProperty] private string? _checkForUpdatesResult;
     [ObservableProperty] private bool _watermarkEnabled;
+    [ObservableProperty] private string _watermarkText = "";
     [ObservableProperty] private bool _snapToGridEnabled = true;
     [ObservableProperty] private string? _licenseCountdownText;
     [ObservableProperty] private bool _showRenewLink;
@@ -236,6 +238,44 @@ public partial class MainViewModel : ViewModelBase
         ShowToast = true;
     }
 
+    // ---- Admin: publish a Premium Template directly (no GitHub round-trip) --
+
+    [ObservableProperty] private bool _isAdmin;
+    [ObservableProperty] private bool _isPublishingPremiumTemplate;
+
+    public bool CanPublishSelectedAsPremiumTemplate => IsAdmin && SelectedTemplate is { SourceDirectory: not null };
+
+    partial void OnIsAdminChanged(bool value) => OnPropertyChanged(nameof(CanPublishSelectedAsPremiumTemplate));
+
+    [RelayCommand]
+    private async Task PublishSelectedAsPremiumTemplateAsync()
+    {
+        if (!IsAdmin || SelectedTemplate is not { SourceDirectory: not null } template)
+            return;
+
+        var sourceImage = Path.Combine(template.SourceDirectory, template.Image);
+        if (!File.Exists(sourceImage))
+        {
+            ToastMessage = "Couldn't find this template's image file on disk.";
+            ShowToast = true;
+            return;
+        }
+
+        IsPublishingPremiumTemplate = true;
+        try
+        {
+            var result = await _premiumAdmin.PublishTemplateAsync(template, sourceImage, template.Name, template.Category);
+            ToastMessage = result.Success
+                ? $"Published \"{template.Name}\" as a Premium Template (v{result.PublishedVersion}) — live for every user with an access key now."
+                : $"Publish failed: {result.Error}";
+            ShowToast = true;
+        }
+        finally
+        {
+            IsPublishingPremiumTemplate = false;
+        }
+    }
+
     // ---- Premium Templates (key-gated, admin-shipped, locked format) --------
 
     [ObservableProperty] private bool _isPremiumUnlocked;
@@ -365,7 +405,7 @@ public partial class MainViewModel : ViewModelBase
     public event EventHandler<SKBitmapHolder>? ClipboardExportRequested;
     public event EventHandler<ThemePreference>? ThemeChanged;
 
-    public MainViewModel(TemplateService templates, RenderService render, SettingsService settings, UpdateService update, FontRegistry fonts, LicenseService license, LocalizationService loc, OcrTemplateService ocr, PremiumAccessService premiumAccess, PremiumTemplateSyncService premiumSync)
+    public MainViewModel(TemplateService templates, RenderService render, SettingsService settings, UpdateService update, FontRegistry fonts, LicenseService license, LocalizationService loc, OcrTemplateService ocr, PremiumAccessService premiumAccess, PremiumTemplateSyncService premiumSync, PremiumAdminService premiumAdmin)
     {
         _templates = templates;
         _render = render;
@@ -376,12 +416,14 @@ public partial class MainViewModel : ViewModelBase
         _ocr = ocr;
         _premiumAccess = premiumAccess;
         _premiumSync = premiumSync;
+        _premiumAdmin = premiumAdmin;
         Loc = loc;
 
         var appSettings = _settings.Load();
         Theme = appSettings.Theme;
         Language = appSettings.Language;
         WatermarkEnabled = appSettings.WatermarkEnabled;
+        WatermarkText = appSettings.WatermarkText ?? "";
         SnapToGridEnabled = appSettings.SnapToGridEnabled;
         foreach (var p in appSettings.ExportPresets)
             ExportPresets.Add(p);
@@ -411,6 +453,7 @@ public partial class MainViewModel : ViewModelBase
 
     partial void OnSelectedTemplateChanged(TemplateManifest? value)
     {
+        OnPropertyChanged(nameof(CanPublishSelectedAsPremiumTemplate));
         Fields.Clear();
         if (value is null)
         {
@@ -473,7 +516,7 @@ public partial class MainViewModel : ViewModelBase
             return;
 
         var values = Fields.ToDictionary(f => f.Field.Id, f => f.Value);
-        using var bitmap = _render.Render(SelectedTemplate, values, WatermarkEnabled);
+        using var bitmap = _render.Render(SelectedTemplate, values, WatermarkEnabled, WatermarkText);
         PreviewImage = SkiaInterop.ToAvaloniaBitmap(bitmap);
     }
 
@@ -596,7 +639,7 @@ public partial class MainViewModel : ViewModelBase
         if (SelectedTemplate is null)
             return;
         var values = Fields.ToDictionary(f => f.Field.Id, f => f.Value);
-        var bitmap = _render.Render(SelectedTemplate, values, WatermarkEnabled);
+        var bitmap = _render.Render(SelectedTemplate, values, WatermarkEnabled, WatermarkText);
         ClipboardExportRequested?.Invoke(this, new SKBitmapHolder(bitmap));
     }
 
@@ -615,7 +658,7 @@ public partial class MainViewModel : ViewModelBase
             return;
 
         var values = Fields.ToDictionary(f => f.Field.Id, f => f.Value);
-        var bitmap = _render.Render(SelectedTemplate, values, WatermarkEnabled);
+        var bitmap = _render.Render(SelectedTemplate, values, WatermarkEnabled, WatermarkText);
         var ext = format switch { ExportFormat.Jpg => "jpg", ExportFormat.Pdf => "pdf", _ => "png" };
         var fileName = $"{SelectedTemplate.Id}-{DateTime.Now:yyyyMMdd-HHmmss}.{ext}";
         ExportRequested?.Invoke(this, (new SKBitmapHolder(bitmap), fileName, format));
@@ -845,6 +888,8 @@ public partial class MainViewModel : ViewModelBase
     public string RenewLabel => Loc.T("Settings.Renew");
     public string ExportPresetsLabel => Loc.T("Settings.ExportPresets");
     public string WatermarkLabel => Loc.T("Settings.Watermark");
+    public string PublishPremiumTemplateLabel => Loc.T("Settings.PublishPremiumTemplate");
+    public string WatermarkTextPlaceholder => Loc.T("Settings.WatermarkTextPlaceholder");
     public string OpenFolderLabel => Loc.T("Toast.OpenFolder");
     public string CommandPalettePlaceholder => Loc.T("CommandPalette.Placeholder");
 
@@ -854,6 +899,15 @@ public partial class MainViewModel : ViewModelBase
         appSettings.WatermarkEnabled = value;
         _settings.Save(appSettings);
         RenderNow();
+    }
+
+    partial void OnWatermarkTextChanged(string value)
+    {
+        var appSettings = _settings.Load();
+        appSettings.WatermarkText = value;
+        _settings.Save(appSettings);
+        if (WatermarkEnabled)
+            RenderNow();
     }
 
     partial void OnSnapToGridEnabledChanged(bool value)

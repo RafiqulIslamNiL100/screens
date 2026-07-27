@@ -104,38 +104,55 @@ public static class PhotoRegionEraser
 
     /// <summary>Median color along one edge of the box, sampled from a band just outside it (6-30px
     /// out, not a single thin line) so a small amount of noise/texture in the surrounding art gets
-    /// smoothed out rather than picking one unlucky pixel.</summary>
+    /// smoothed out rather than picking one unlucky pixel. Rings are sampled nearest-first and
+    /// anchored against the closest ring's own average: a farther ring gets folded in only if it's
+    /// still close in color to that anchor, so crossing a container edge just outside the box (a
+    /// card, a button, a photo frame — anything whose boundary sits within the 30px band) discards
+    /// the far side instead of blending it in and leaving a mismatched patch.</summary>
     private static SKColor SampleEdge(SKBitmap bitmap, SKRectI box, bool top, bool left, bool vertical = true)
     {
-        var samples = new List<SKColor>();
-        void Sample(int x, int y)
+        var ringOffsets = new[] { 6, 14, 22, 30 };
+        var rings = new List<SKColor>[ringOffsets.Length];
+        for (var i = 0; i < ringOffsets.Length; i++)
+            rings[i] = new List<SKColor>();
+
+        void Sample(int ring, int x, int y)
         {
             if (x >= 0 && y >= 0 && x < bitmap.Width && y < bitmap.Height)
-                samples.Add(bitmap.GetPixel(x, y));
+                rings[ring].Add(bitmap.GetPixel(x, y));
         }
 
         if (vertical)
         {
             var stepX = Math.Max(1, box.Width / 24);
             for (var x = box.Left; x < box.Right; x += stepX)
-                for (var d = 6; d <= 30; d += 8)
-                    Sample(x, top ? box.Top - d : box.Bottom + d);
+                for (var i = 0; i < ringOffsets.Length; i++)
+                    Sample(i, x, top ? box.Top - ringOffsets[i] : box.Bottom + ringOffsets[i]);
         }
         else
         {
             var stepY = Math.Max(1, box.Height / 12);
             for (var y = box.Top; y < box.Bottom; y += stepY)
-                for (var d = 6; d <= 30; d += 8)
-                    Sample(left ? box.Left - d : box.Right + d, y);
+                for (var i = 0; i < ringOffsets.Length; i++)
+                    Sample(i, left ? box.Left - ringOffsets[i] : box.Right + ringOffsets[i], y);
         }
 
-        if (samples.Count == 0)
+        var anchor = rings.FirstOrDefault(r => r.Count > 0);
+        if (anchor is null || anchor.Count == 0)
             return SKColors.White;
+        var anchorColor = Average(anchor.ToArray());
 
-        var r = (byte)samples.Average(c => c.Red);
-        var g = (byte)samples.Average(c => c.Green);
-        var b = (byte)samples.Average(c => c.Blue);
-        return new SKColor(r, g, b);
+        const double maxRingDrift = 45.0; // beyond this, a farther ring is "a different surface", not noise
+        var accepted = new List<SKColor>();
+        foreach (var ring in rings)
+        {
+            if (ring.Count == 0) continue;
+            var ringColor = Average(ring.ToArray());
+            if (ColorDistance(ringColor, anchorColor) <= maxRingDrift)
+                accepted.AddRange(ring);
+        }
+
+        return Average(accepted.ToArray());
     }
 
     private static double ColorDistance(SKColor a, SKColor b)

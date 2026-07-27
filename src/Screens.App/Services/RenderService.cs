@@ -20,7 +20,7 @@ public sealed class RenderService
 
     public RenderService(FontRegistry fonts) => _fonts = fonts;
 
-    public SKBitmap Render(TemplateManifest manifest, IReadOnlyDictionary<string, string> values, bool watermark = false)
+    public SKBitmap Render(TemplateManifest manifest, IReadOnlyDictionary<string, string> values, bool watermark = false, string? watermarkText = null)
     {
         var imagePath = Path.Combine(manifest.SourceDirectory ?? "", manifest.Image);
         using var background = SKBitmap.Decode(imagePath)
@@ -52,7 +52,7 @@ public sealed class RenderService
             }
 
             if (watermark)
-                DrawWatermark(canvas, manifest.Canvas.Width, manifest.Canvas.Height);
+                DrawWatermark(canvas, manifest.Canvas.Width, manifest.Canvas.Height, watermarkText);
         }
 
         return bitmap;
@@ -95,9 +95,9 @@ public sealed class RenderService
         document.Close();
     }
 
-    private static void DrawWatermark(SKCanvas canvas, int width, int height)
+    private static void DrawWatermark(SKCanvas canvas, int width, int height, string? customText)
     {
-        const string text = "Made with Screens";
+        var text = string.IsNullOrWhiteSpace(customText) ? "Made with Screens" : customText.Trim();
         using var paint = new SKPaint
         {
             IsAntialias = true,

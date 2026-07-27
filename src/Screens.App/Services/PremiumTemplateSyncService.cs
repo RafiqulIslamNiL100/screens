@@ -9,19 +9,19 @@ using System.Threading.Tasks;
 
 namespace Screens.App.Services;
 
-/// <summary>An entry in premium-templates/index.json (distribution repo) — one manifest+image
-/// pair the admin has shipped. imageFile/manifestFile are filenames resolved against
-/// AppConfig.PremiumTemplatesBaseUrl, not full URLs, so the whole catalog can move without
-/// touching every entry. Version starts at 1 and only needs to go up when the admin re-ships an
-/// edited copy of the same id — that's the only signal EnsureDownloadedAsync has for "the local
-/// cached copy is stale, fetch it again."</summary>
+/// <summary>A row of public.premium_templates_catalog (Supabase) — one manifest+image pair an
+/// admin has published from inside the app (see PremiumAdminService.PublishTemplateAsync).
+/// imageFile/manifestFile are filenames resolved against AppConfig.PremiumTemplatesStorageBaseUrl,
+/// not full URLs, so the whole catalog can move without touching every entry. Version starts at 1
+/// and only goes up when an admin republishes an edited copy of the same id — that's the only
+/// signal EnsureDownloadedAsync has for "the local cached copy is stale, fetch it again."</summary>
 public sealed class PremiumTemplateIndexEntry
 {
     [JsonPropertyName("id")] public string Id { get; set; } = "";
     [JsonPropertyName("name")] public string Name { get; set; } = "";
     [JsonPropertyName("category")] public string Category { get; set; } = "";
-    [JsonPropertyName("manifestFile")] public string ManifestFile { get; set; } = "";
-    [JsonPropertyName("imageFile")] public string ImageFile { get; set; } = "";
+    [JsonPropertyName("manifest_file")] public string ManifestFile { get; set; } = "";
+    [JsonPropertyName("image_file")] public string ImageFile { get; set; } = "";
     [JsonPropertyName("version")] public int Version { get; set; } = 1;
 
     /// <summary>Set by MainViewModel after a successful (or already up-to-date)
@@ -32,13 +32,13 @@ public sealed class PremiumTemplateIndexEntry
 }
 
 /// <summary>
-/// Fetches the catalog of admin-shipped Premium Templates the same way UpdateService checks for
-/// app updates — a JSON index hosted in the distribution repo, read over plain HTTPS, no auth
-/// needed since none of this is sensitive (it's the same public content as the installer). Only
-/// ever called once a user has unlocked access (see PremiumAccessService); templates are cached
-/// under SettingsService.PremiumTemplatesDirectory, alongside a small "<id>.version" sidecar file
-/// recording which index version is currently on disk — so re-opening the gallery re-downloads
-/// only entries the admin has actually re-shipped since, not everything every time.
+/// Fetches the catalog of admin-published Premium Templates from Supabase (public.
+/// premium_templates_catalog, read over plain HTTPS with just the anon key — no auth needed since
+/// none of this is sensitive, same posture the old GitHub-hosted index.json had). Only ever
+/// called once a user has unlocked access (see PremiumAccessService); templates are cached under
+/// SettingsService.PremiumTemplatesDirectory, alongside a small "<id>.version" sidecar file
+/// recording which catalog version is currently on disk — so re-opening the gallery re-downloads
+/// only entries an admin has actually republished since, not everything every time.
 /// </summary>
 public sealed class PremiumTemplateSyncService
 {
@@ -50,6 +50,8 @@ public sealed class PremiumTemplateSyncService
     {
         _config = config;
         _settings = settings;
+        if (_config.IsSupabaseConfigured)
+            _http.DefaultRequestHeaders.Add("apikey", _config.SupabaseAnonKey);
     }
 
     /// <summary>Fetches the current catalog listing. Never throws — an empty list on any failure
@@ -57,12 +59,13 @@ public sealed class PremiumTemplateSyncService
     /// UpdateService.CheckAsync's silent-failure convention.</summary>
     public async Task<IReadOnlyList<PremiumTemplateIndexEntry>> FetchIndexAsync()
     {
-        if (string.IsNullOrWhiteSpace(_config.PremiumTemplatesIndexUrl))
+        if (!_config.IsSupabaseConfigured)
             return Array.Empty<PremiumTemplateIndexEntry>();
 
         try
         {
-            var entries = await _http.GetFromJsonAsync<List<PremiumTemplateIndexEntry>>(_config.PremiumTemplatesIndexUrl);
+            var url = _config.PremiumTemplatesCatalogUrl + "?select=id,name,category,manifest_file,image_file,version&order=name.asc";
+            var entries = await _http.GetFromJsonAsync<List<PremiumTemplateIndexEntry>>(url);
             return entries ?? new List<PremiumTemplateIndexEntry>();
         }
         catch
@@ -107,7 +110,7 @@ public sealed class PremiumTemplateSyncService
 
         try
         {
-            var baseUrl = _config.PremiumTemplatesBaseUrl.TrimEnd('/') + "/";
+            var baseUrl = _config.PremiumTemplatesStorageBaseUrl;
             var manifestBytes = await _http.GetByteArrayAsync(baseUrl + entry.ManifestFile);
             var imageBytes = await _http.GetByteArrayAsync(baseUrl + entry.ImageFile);
 
