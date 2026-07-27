@@ -71,6 +71,9 @@ public sealed class LocalizationService
         ["License.DaysRemaining"] = "{0} days remaining",
         ["License.ExpiresToday"] = "Expires today",
         ["License.Lifetime"] = "Lifetime license",
+        ["PremiumAccess.DaysRemaining"] = "{0} days remaining",
+        ["PremiumAccess.ExpiresToday"] = "Expires today",
+        ["PremiumAccess.Lifetime"] = "Lifetime access",
     };
 
     private static readonly Dictionary<string, string> Zh = new()
@@ -107,5 +110,8 @@ public sealed class LocalizationService
         ["License.DaysRemaining"] = "剩余 {0} 天",
         ["License.ExpiresToday"] = "今天到期",
         ["License.Lifetime"] = "永久许可证",
+        ["PremiumAccess.DaysRemaining"] = "剩余 {0} 天",
+        ["PremiumAccess.ExpiresToday"] = "今天到期",
+        ["PremiumAccess.Lifetime"] = "永久访问权限",
     };
 }

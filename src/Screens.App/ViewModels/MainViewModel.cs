@@ -53,6 +53,8 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private bool _snapToGridEnabled = true;
     [ObservableProperty] private string? _licenseCountdownText;
     [ObservableProperty] private bool _showRenewLink;
+    [ObservableProperty] private string? _premiumAccessCountdownText;
+    [ObservableProperty] private bool _showPremiumRenewLink;
     [ObservableProperty] private bool _showCommandPalette;
     [ObservableProperty] private string _commandPaletteQuery = "";
     [ObservableProperty] private string _newPresetName = "";
@@ -308,8 +310,23 @@ public partial class MainViewModel : ViewModelBase
             var entries = await _premiumSync.FetchIndexAsync();
             if (entries.Count == 0)
                 PremiumGalleryError = "No premium templates are available right now.";
+
+            // Downloaded eagerly (sequentially — catalogs are admin-curated and small, and this
+            // avoids hammering the distribution host with concurrent requests) rather than only
+            // on selection, for two reasons: it's what gives the gallery a real thumbnail to show
+            // instead of a blank tile, and it doubles as the update check — EnsureDownloadedAsync
+            // re-fetches anything the admin has re-shipped a newer version of since it was last
+            // cached, so simply opening the gallery keeps every template current. One entry
+            // failing to download (offline, a bad file) doesn't drop it from the list — it just
+            // shows without a thumbnail until the next successful refresh.
             foreach (var e in entries)
+            {
+                var ok = await _premiumSync.EnsureDownloadedAsync(e);
+                if (ok)
+                    e.LocalImagePath = _premiumSync.LocalImagePath(e);
                 PremiumGalleryEntries.Add(e);
+            }
+
             ShowPremiumGallery = true;
         }
         finally
@@ -374,7 +391,8 @@ public partial class MainViewModel : ViewModelBase
         UpdateLicenseCountdown();
 
         IsPremiumUnlocked = _premiumAccess.State.IsUnlocked;
-        _premiumAccess.StateChanged += state => IsPremiumUnlocked = state.IsUnlocked;
+        _premiumAccess.StateChanged += _ => UpdatePremiumAccessCountdown();
+        UpdatePremiumAccessCountdown();
 
         BuildCommandPaletteItems();
 
@@ -869,6 +887,34 @@ public partial class MainViewModel : ViewModelBase
             LicenseCountdownText = string.Format(Loc.T("License.DaysRemaining"), days);
         }
         ShowRenewLink = remaining.TotalDays <= 7;
+    }
+
+    /// <summary>Mirrors UpdateLicenseCountdown for the separate premium_templates-type key —
+    /// unlocked/expiry state is entirely independent of the app license, so this can't just call
+    /// into that method with different labels; it reads _premiumAccess.State instead of _license.State.</summary>
+    private void UpdatePremiumAccessCountdown()
+    {
+        IsPremiumUnlocked = _premiumAccess.State.IsUnlocked;
+        if (!IsPremiumUnlocked)
+        {
+            PremiumAccessCountdownText = null;
+            ShowPremiumRenewLink = false;
+            return;
+        }
+
+        var expires = _premiumAccess.State.ExpiresAt;
+        if (expires is null)
+        {
+            PremiumAccessCountdownText = Loc.T("PremiumAccess.Lifetime");
+            ShowPremiumRenewLink = false;
+            return;
+        }
+
+        var remaining = expires.Value - DateTimeOffset.UtcNow;
+        PremiumAccessCountdownText = remaining.TotalDays < 1
+            ? Loc.T("PremiumAccess.ExpiresToday")
+            : string.Format(Loc.T("PremiumAccess.DaysRemaining"), (int)Math.Ceiling(remaining.TotalDays));
+        ShowPremiumRenewLink = remaining.TotalDays <= 7;
     }
 
     // ---- Command palette ----------------------------------------------

@@ -310,7 +310,9 @@
                   <Border Classes="card" Width="176" Margin="0,0,10,10" Padding="10"
                           PointerPressed="OnPremiumTemplateTilePressed" Tag="{Binding}">
                     <StackPanel Spacing="6">
-                      <Border Height="90" Background="{DynamicResource BrushSurfaceElevated}" CornerRadius="6"/>
+                      <Border Height="90" Background="{DynamicResource BrushSurfaceElevated}" CornerRadius="6" ClipToBounds="True">
+                        <Image Source="{Binding LocalImagePath, Converter={x:Static conv:PathToBitmapConverter.Instance}}" Stretch="UniformToFill"/>
+                      </Border>
                       <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                       <TextBlock Text="{Binding Category}" Classes="muted"/>
                     </StackPanel>
@@ -383,6 +385,12 @@
           <StackPanel Spacing="4">
             <TextBlock Text="{Binding LicenseCountdownText}"/>
             <Button Content="{Binding RenewLabel}" Classes="secondary" IsVisible="{Binding ShowRenewLink}" Click="OnRenewClicked" HorizontalAlignment="Left"/>
+          </StackPanel>
+
+          <StackPanel Spacing="4" IsVisible="{Binding IsPremiumUnlocked}">
+            <TextBlock Text="Premium Templates" Classes="muted"/>
+            <TextBlock Text="{Binding PremiumAccessCountdownText}"/>
+            <Button Content="Renew" Classes="secondary" IsVisible="{Binding ShowPremiumRenewLink}" Click="OnRenewClicked" HorizontalAlignment="Left"/>
           </StackPanel>
 
           <StackPanel Spacing="4">
