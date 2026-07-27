@@ -65,6 +65,10 @@
             <TextBlock Text="{Binding ScanImageError}" Classes="muted" Foreground="{DynamicResource BrushDanger}" TextWrapping="Wrap"
                         IsVisible="{Binding ScanImageError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
 
+            <Button Content="Build a template…" Classes="secondary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    Click="OnBuildTemplateClicked" IsEnabled="{Binding !IsBuildingTemplate}"
+                    ToolTip.Tip="Import your own raw photo (untouched, no re-encoding) and draw the photo/text placeholders yourself"/>
+
             <ItemsControl ItemsSource="{Binding Warnings}" Margin="0,12,0,0">
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
@@ -82,7 +86,7 @@
              scrollable extent correct at any zoom level, unlike a bare
              ScaleTransform. -->
         <Border Grid.Column="1" Name="CanvasViewport" Background="{DynamicResource BrushSurfaceElevated}" Margin="0" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1,0"
-                PointerWheelChanged="OnCanvasWheelChanged">
+                PointerWheelChanged="OnCanvasWheelChanged" IsVisible="{Binding !IsBuildingTemplate}">
           <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
             <LayoutTransformControl Name="CanvasTransform" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center"
                                      IsVisible="{Binding SelectedTemplate, Converter={x:Static ObjectConverters.IsNotNull}}">
@@ -111,8 +115,79 @@
           </ScrollViewer>
         </Border>
 
+        <!-- Build-a-template canvas: the raw photo shown at fit scale, with click-drag drawing
+             a new region (photo or text, per BuildDrawModeIsPhoto) directly on it. -->
+        <Border Grid.Column="1" Name="BuildViewport" Background="{DynamicResource BrushSurfaceElevated}" Margin="0" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1,0"
+                IsVisible="{Binding IsBuildingTemplate}">
+          <Viewbox Stretch="Uniform" StretchDirection="DownOnly" MaxWidth="900" MaxHeight="900" Margin="24">
+            <Panel Width="{Binding BuildPhotoWidth}" Height="{Binding BuildPhotoHeight}">
+              <Image Name="BuildPhotoImage" Source="{Binding BuildPhotoPath, Converter={x:Static conv:PathToBitmapConverter.Instance}}"
+                     Width="{Binding BuildPhotoWidth}" Height="{Binding BuildPhotoHeight}"/>
+              <Canvas Name="BuildDrawSurface" Background="Transparent"
+                      PointerPressed="OnBuildDrawStart" PointerMoved="OnBuildDrawMove" PointerReleased="OnBuildDrawEnd">
+                <ItemsControl ItemsSource="{Binding BuildFields}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><Canvas/></ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:TemplateField">
+                      <Border Canvas.Left="{Binding Box.X}" Canvas.Top="{Binding Box.Y}"
+                              Width="{Binding Box.Width}" Height="{Binding Box.Height}"
+                              BorderBrush="{DynamicResource BrushPrimary}" BorderThickness="2" CornerRadius="3"
+                              Background="#227C3AED">
+                        <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Top">
+                          <TextBlock Grid.Column="0" Text="{Binding Label}" Foreground="White" FontSize="11" FontWeight="Bold" Margin="4,2"/>
+                          <Button Grid.Column="1" Content="✕" Classes="icon" Padding="2" Margin="2"
+                                  Command="{Binding $parent[ItemsControl].((vm:MainViewModel)DataContext).RemoveBuildRegionCommand}"
+                                  CommandParameter="{Binding}"/>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Border Name="BuildInProgressBox" IsVisible="False" BorderBrush="{DynamicResource BrushPrimary}" BorderThickness="2" Background="#337C3AED"/>
+              </Canvas>
+            </Panel>
+          </Viewbox>
+        </Border>
+
+        <!-- Build-a-template side panel -->
+        <ScrollViewer Grid.Column="2" Padding="16" IsVisible="{Binding IsBuildingTemplate}">
+          <StackPanel Spacing="16">
+            <TextBlock Text="Build a template" FontWeight="Bold"/>
+            <TextBlock Classes="muted" TextWrapping="Wrap"
+                       Text="Drag directly on the photo to mark a region. Choose what you're marking first, then draw as many as you need."/>
+
+            <StackPanel Spacing="6">
+              <RadioButton Content="Photo placeholder" GroupName="BuildMode" IsChecked="{Binding BuildDrawModeIsPhoto, Mode=TwoWay}"/>
+              <RadioButton Content="Text placeholder" GroupName="BuildMode" IsChecked="{Binding BuildDrawModeIsText, Mode=TwoWay}"/>
+            </StackPanel>
+
+            <TextBlock Text="Regions" Classes="muted"/>
+            <ItemsControl ItemsSource="{Binding BuildFields}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="models:TemplateField">
+                  <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                    <TextBlock Grid.Column="0" Text="{Binding Label}" VerticalAlignment="Center"/>
+                    <Button Grid.Column="1" Content="✕" Classes="icon"
+                            Command="{Binding $parent[ItemsControl].((vm:MainViewModel)DataContext).RemoveBuildRegionCommand}"
+                            CommandParameter="{Binding}"/>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="No regions marked yet — drag on the photo to add one." Classes="muted" TextWrapping="Wrap"
+                       IsVisible="{Binding !BuildFields.Count}"/>
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Content="Save as template" Classes="primary" Command="{Binding SaveBuildTemplateCommand}" IsEnabled="{Binding BuildFields.Count}"/>
+              <Button Content="Cancel" Classes="secondary" Command="{Binding CancelBuildTemplateCommand}"/>
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
+
         <!-- Field editor -->
-        <ScrollViewer Grid.Column="2" Padding="16">
+        <ScrollViewer Grid.Column="2" Padding="16" IsVisible="{Binding !IsBuildingTemplate}">
           <StackPanel Spacing="16">
             <Grid ColumnDefinitions="*,Auto,Auto,Auto">
               <TextBlock Grid.Column="0" Text="{Binding FieldsLabel}" FontWeight="Bold" VerticalAlignment="Center"/>

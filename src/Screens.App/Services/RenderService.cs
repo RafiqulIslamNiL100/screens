@@ -69,7 +69,7 @@ public sealed class RenderService
         using var image = SKImage.FromBitmap(bitmap);
         using var data = format switch
         {
-            ExportFormat.Jpg => image.Encode(SKEncodedImageFormat.Jpeg, 92),
+            ExportFormat.Jpg => image.Encode(SKEncodedImageFormat.Jpeg, 100),
             _ => image.Encode(SKEncodedImageFormat.Png, 100),
         };
         using var stream = File.OpenWrite(path);

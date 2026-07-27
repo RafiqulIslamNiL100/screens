@@ -55,6 +55,118 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private string _newPresetName = "";
     [ObservableProperty] private string _newPresetFormat = "png";
 
+    // ---- Build-your-own-template mode --------------------------------
+    // The raw photo is never decoded/re-encoded here — only ever File.Copy'd, byte-for-byte,
+    // when the template is saved (see SaveBuildTemplate) — so nothing about it is ever
+    // recompressed or loses a pixel versus what the user imported.
+    [ObservableProperty] private bool _isBuildingTemplate;
+    [ObservableProperty] private string? _buildPhotoPath;
+    [ObservableProperty] private int _buildPhotoWidth;
+    [ObservableProperty] private int _buildPhotoHeight;
+    [ObservableProperty] private bool _buildDrawModeIsPhoto = true;
+
+    /// <summary>The inverse of <see cref="BuildDrawModeIsPhoto"/>, so the "Text placeholder"
+    /// radio button has something to two-way bind to without a non-reversible negation binding.</summary>
+    public bool BuildDrawModeIsText
+    {
+        get => !BuildDrawModeIsPhoto;
+        set => BuildDrawModeIsPhoto = !value;
+    }
+
+    partial void OnBuildDrawModeIsPhotoChanged(bool value) => OnPropertyChanged(nameof(BuildDrawModeIsText));
+
+    public ObservableCollection<TemplateField> BuildFields { get; } = new();
+
+    public void StartBuildTemplate(string photoPath, int width, int height)
+    {
+        BuildPhotoPath = photoPath;
+        BuildPhotoWidth = width;
+        BuildPhotoHeight = height;
+        BuildFields.Clear();
+        IsBuildingTemplate = true;
+    }
+
+    /// <summary>Called by the view once the user finishes dragging out a rectangle on the raw
+    /// photo — coordinates are already in photo-pixel space. Anything smaller than a few pixels
+    /// is treated as an accidental click, not a real region.</summary>
+    public void AddBuildRegion(double x, double y, double width, double height)
+    {
+        if (width < 6 || height < 6)
+            return;
+
+        var index = BuildFields.Count + 1;
+        var isPhoto = BuildDrawModeIsPhoto;
+        BuildFields.Add(new TemplateField
+        {
+            Id = isPhoto ? $"photo{index}" : $"text{index}",
+            Type = isPhoto ? "image" : "text",
+            Label = isPhoto ? $"Photo {index}" : $"Text {index}",
+            Default = isPhoto ? "" : "Edit me",
+            Placeholder = isPhoto ? "Choose a photo" : "Enter text",
+            Box = new FieldBox { X = x, Y = y, Width = width, Height = height },
+            Align = "left",
+            VerticalAlign = "middle",
+            Font = new FieldFont { Family = "Inter", Size = Math.Max(12, height * 0.45), Weight = "Regular" },
+            Color = "#1A1028",
+            AutoShrink = true,
+            UserEditableColor = true,
+            UserEditableSize = true,
+        });
+    }
+
+    [RelayCommand]
+    private void RemoveBuildRegion(TemplateField? field)
+    {
+        if (field is not null)
+            BuildFields.Remove(field);
+    }
+
+    [RelayCommand]
+    private void CancelBuildTemplate()
+    {
+        IsBuildingTemplate = false;
+        BuildFields.Clear();
+        BuildPhotoPath = null;
+    }
+
+    [RelayCommand]
+    private void SaveBuildTemplate()
+    {
+        if (BuildPhotoPath is null || BuildFields.Count == 0)
+            return;
+
+        var newId = $"custom-{DateTime.Now:yyyyMMddHHmmss}";
+        var destDir = _settings.TemplatesDirectory;
+        Directory.CreateDirectory(destDir);
+
+        var ext = Path.GetExtension(BuildPhotoPath);
+        if (string.IsNullOrEmpty(ext))
+            ext = ".png";
+        var imageName = $"{newId}{ext}";
+        File.Copy(BuildPhotoPath, Path.Combine(destDir, imageName), overwrite: true);
+
+        var manifest = new TemplateManifest
+        {
+            Id = newId,
+            Name = $"My Template {DateTime.Now:MMM d, HH:mm}",
+            Category = "My Templates",
+            Image = imageName,
+            Canvas = new CanvasSize { Width = BuildPhotoWidth, Height = BuildPhotoHeight },
+            Fields = BuildFields.ToList(),
+        };
+
+        var json = JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(Path.Combine(destDir, $"{newId}.json"), json);
+
+        IsBuildingTemplate = false;
+        BuildFields.Clear();
+        BuildPhotoPath = null;
+
+        LoadTemplates(newId);
+        ToastMessage = "Template saved — adjust font, size, or color for any field below.";
+        ShowToast = true;
+    }
+
     public ObservableCollection<FieldEditorItemViewModel> Fields { get; } = new();
     public ObservableCollection<TemplateLoadWarning> Warnings { get; } = new();
     public ObservableCollection<ExportPreset> ExportPresets { get; } = new();

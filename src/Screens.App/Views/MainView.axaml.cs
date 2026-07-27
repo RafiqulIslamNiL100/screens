@@ -148,6 +148,122 @@ public partial class MainView : UserControl
         await vm.ScanImageAsync(file.Path.LocalPath);
     }
 
+    private async void OnBuildTemplateClicked(object? sender, RoutedEventArgs e)
+    {
+        if (Vm is not { } vm)
+            return;
+
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel is null)
+            return;
+
+        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Choose a raw photo to build a template from",
+            AllowMultiple = false,
+            FileTypeFilter = new[]
+            {
+                new FilePickerFileType("Images") { Patterns = new[] { "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.webp" } },
+            },
+        });
+
+        var file = files.Count > 0 ? files[0] : null;
+        if (file is null)
+            return;
+
+        var path = file.Path.LocalPath;
+        // Only reading dimensions here — the file itself is never decoded/re-encoded again;
+        // SaveBuildTemplate copies these exact bytes when the template is saved.
+        using var probe = SKBitmap.Decode(path);
+        if (probe is null)
+            return;
+
+        vm.StartBuildTemplate(path, probe.Width, probe.Height);
+    }
+
+    // ---- Build-a-template: draw a region on the raw photo -------------
+
+    private Point? _buildDrawStart;
+
+    private double BuildDrawScale()
+    {
+        var image = this.FindControl<Image>("BuildPhotoImage");
+        var vm = Vm;
+        if (image is null || vm is null || vm.BuildPhotoWidth <= 0 || image.Bounds.Width <= 0)
+            return 1.0;
+        return image.Bounds.Width / vm.BuildPhotoWidth;
+    }
+
+    private void OnBuildDrawStart(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is not Canvas canvas)
+            return;
+
+        var scale = BuildDrawScale();
+        var pos = e.GetPosition(canvas);
+        _buildDrawStart = new Point(pos.X / scale, pos.Y / scale);
+
+        var box = this.FindControl<Border>("BuildInProgressBox");
+        if (box is null)
+            return;
+        Canvas.SetLeft(box, pos.X);
+        Canvas.SetTop(box, pos.Y);
+        box.Width = 0;
+        box.Height = 0;
+        box.IsVisible = true;
+
+        e.Pointer.Capture(canvas);
+    }
+
+    private void OnBuildDrawMove(object? sender, PointerEventArgs e)
+    {
+        if (_buildDrawStart is not { } start || sender is not Canvas canvas || !Equals(e.Pointer.Captured, canvas))
+            return;
+
+        var box = this.FindControl<Border>("BuildInProgressBox");
+        if (box is null)
+            return;
+
+        var scale = BuildDrawScale();
+        var pos = e.GetPosition(canvas);
+        var startScreen = new Point(start.X * scale, start.Y * scale);
+
+        var left = Math.Min(startScreen.X, pos.X);
+        var top = Math.Min(startScreen.Y, pos.Y);
+        Canvas.SetLeft(box, left);
+        Canvas.SetTop(box, top);
+        box.Width = Math.Abs(pos.X - startScreen.X);
+        box.Height = Math.Abs(pos.Y - startScreen.Y);
+    }
+
+    private void OnBuildDrawEnd(object? sender, PointerReleasedEventArgs e)
+    {
+        if (sender is not Canvas canvas)
+            return;
+        e.Pointer.Capture(null);
+
+        var box = this.FindControl<Border>("BuildInProgressBox");
+        if (box is not null)
+            box.IsVisible = false;
+
+        if (_buildDrawStart is not { } start || Vm is not { } vm)
+        {
+            _buildDrawStart = null;
+            return;
+        }
+
+        var scale = BuildDrawScale();
+        var pos = e.GetPosition(canvas);
+        var end = new Point(pos.X / scale, pos.Y / scale);
+        _buildDrawStart = null;
+
+        var x = Math.Min(start.X, end.X);
+        var y = Math.Min(start.Y, end.Y);
+        var w = Math.Abs(end.X - start.X);
+        var h = Math.Abs(end.Y - start.Y);
+        vm.AddBuildRegion(x, y, w, h);
+    }
+
     private static FilePickerFileType[] FileTypeChoices(ExportFormat requested) => requested switch
     {
         ExportFormat.Jpg => new[] { new FilePickerFileType("JPEG image") { Patterns = new[] { "*.jpg" } } },

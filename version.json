@@ -1,7 +1,7 @@
 {
-  "version": "1.5.0",
-  "notes": "Simplified: removed the search box, Recent templates strip, and built-in template gallery list. \"Scan a picture\" (and Duplicate) are now the way to get a template — whatever you last used opens automatically.",
-  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.5.0.exe",
-  "sha256": "6bcaf4ffd1b378907ae40f5f123198b8ad780811c649dbe62e1a0b508950a5c4",
+  "version": "1.6.0",
+  "notes": "New: \"Build a template\" — import your own raw photo (copied byte-for-byte, never re-encoded) and draw photo/text placeholders directly on it by hand, then save and reuse it. Improved: JPG exports now encode at maximum quality (was 92, now 100) for the highest-fidelity output.",
+  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.6.0.exe",
+  "sha256": "9535cb98570e54f70dfea81603b6d5bacca1c30181ec4a980295655b932fe6cd",
   "mandatory": false
 }
