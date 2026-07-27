@@ -53,49 +53,17 @@
 
       <Grid ColumnDefinitions="260,*,360">
 
-        <!-- Template gallery -->
+        <!-- Gallery panel: templates, search, and recent-templates were removed at the user's
+             request — "Scan a picture" is now the only way in, and whatever it (or Duplicate)
+             last produced is auto-selected via AppSettings.LastTemplateId. -->
         <ScrollViewer Grid.Column="0" Padding="12">
           <StackPanel Spacing="8">
-            <TextBox Text="{Binding SearchText, Mode=TwoWay}" Watermark="{Binding SearchPlaceholder}" Margin="0,0,0,4"/>
-
             <Button Content="Scan a picture…" Classes="secondary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                     Click="OnScanImageClicked" IsEnabled="{Binding !IsScanningImage}"
                     ToolTip.Tip="Upload a picture — detected text becomes editable fields you can replace"/>
             <TextBlock Text="Scanning…" Classes="muted" HorizontalAlignment="Center" IsVisible="{Binding IsScanningImage}"/>
             <TextBlock Text="{Binding ScanImageError}" Classes="muted" Foreground="{DynamicResource BrushDanger}" TextWrapping="Wrap"
                         IsVisible="{Binding ScanImageError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-            <Border Height="1" Background="{DynamicResource BrushBorder}" Margin="0,4,0,4"/>
-
-            <ItemsControl ItemsSource="{Binding RecentTemplates}" IsVisible="{Binding RecentTemplates.Count}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="models:TemplateManifest">
-                  <Border Classes="card" Margin="0,0,0,6" Padding="8"
-                          PointerPressed="OnTemplateTilePressed" Tag="{Binding}">
-                    <TextBlock Text="{Binding Name}" Classes="muted" TextTrimming="CharacterEllipsis"/>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-            <Border Height="1" Background="{DynamicResource BrushBorder}" Margin="0,4,0,8" IsVisible="{Binding RecentTemplates.Count}"/>
-
-            <ItemsControl ItemsSource="{Binding Templates}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="models:TemplateManifest">
-                  <Border Classes="card" Margin="0,0,0,8" Padding="10"
-                          PointerPressed="OnTemplateTilePressed" Tag="{Binding}">
-                    <Grid ColumnDefinitions="*,Auto">
-                      <StackPanel Grid.Column="0" Spacing="4">
-                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                        <TextBlock Text="{Binding Category}" Classes="muted"/>
-                      </StackPanel>
-                      <Button Grid.Column="1" Content="✕" Classes="icon" IsVisible="{Binding IsCustom}"
-                              Command="{Binding $parent[ItemsControl].((vm:MainViewModel)DataContext).DeleteTemplateCommand}"
-                              CommandParameter="{Binding}" ToolTip.Tip="Delete this duplicated template"/>
-                    </Grid>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
 
             <ItemsControl ItemsSource="{Binding Warnings}" Margin="0,12,0,0">
               <ItemsControl.ItemTemplate>

@@ -46,7 +46,6 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private string _lastCheckedText = "Never checked";
     [ObservableProperty] private string _currentVersionText = $"Version {UpdateService.CurrentVersion}";
     [ObservableProperty] private string? _checkForUpdatesResult;
-    [ObservableProperty] private string _searchText = "";
     [ObservableProperty] private bool _watermarkEnabled;
     [ObservableProperty] private bool _snapToGridEnabled = true;
     [ObservableProperty] private string? _licenseCountdownText;
@@ -56,8 +55,6 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private string _newPresetName = "";
     [ObservableProperty] private string _newPresetFormat = "png";
 
-    public ObservableCollection<TemplateManifest> Templates { get; } = new();
-    public ObservableCollection<TemplateManifest> RecentTemplates { get; } = new();
     public ObservableCollection<FieldEditorItemViewModel> Fields { get; } = new();
     public ObservableCollection<TemplateLoadWarning> Warnings { get; } = new();
     public ObservableCollection<ExportPreset> ExportPresets { get; } = new();
@@ -103,57 +100,7 @@ public partial class MainViewModel : ViewModelBase
         foreach (var w in _templates.Warnings)
             Warnings.Add(w);
 
-        ApplyTemplateFilter();
-        RefreshRecentTemplates();
-
-        SelectedTemplate = Templates.FirstOrDefault(t => t.Id == lastTemplateId) ?? Templates.FirstOrDefault();
-    }
-
-    private void ApplyTemplateFilter()
-    {
-        var query = SearchText.Trim();
-        var matches = string.IsNullOrEmpty(query)
-            ? _allTemplates
-            : _allTemplates.Where(t =>
-                t.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                t.Category.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
-
-        var previouslySelected = SelectedTemplate?.Id;
-        Templates.Clear();
-        foreach (var t in matches.OrderBy(t => t.Category).ThenBy(t => t.Name))
-            Templates.Add(t);
-
-        if (previouslySelected is not null && Templates.All(t => t.Id != previouslySelected))
-        {
-            // The current selection got filtered out; leave it displayed rather
-            // than yanking the canvas away mid-search — it reappears if the
-            // user clears the search.
-        }
-    }
-
-    partial void OnSearchTextChanged(string value) => ApplyTemplateFilter();
-
-    private void RefreshRecentTemplates()
-    {
-        var appSettings = _settings.Load();
-        RecentTemplates.Clear();
-        foreach (var id in appSettings.RecentTemplateIds)
-        {
-            var match = _allTemplates.FirstOrDefault(t => t.Id == id);
-            if (match is not null)
-                RecentTemplates.Add(match);
-        }
-    }
-
-    private void RecordRecentTemplate(string templateId)
-    {
-        var appSettings = _settings.Load();
-        appSettings.RecentTemplateIds.Remove(templateId);
-        appSettings.RecentTemplateIds.Insert(0, templateId);
-        if (appSettings.RecentTemplateIds.Count > 8)
-            appSettings.RecentTemplateIds.RemoveRange(8, appSettings.RecentTemplateIds.Count - 8);
-        _settings.Save(appSettings);
-        RefreshRecentTemplates();
+        SelectedTemplate = _allTemplates.FirstOrDefault(t => t.Id == lastTemplateId) ?? _allTemplates.FirstOrDefault();
     }
 
     partial void OnSelectedTemplateChanged(TemplateManifest? value)
@@ -181,7 +128,6 @@ public partial class MainViewModel : ViewModelBase
 
         appSettings.LastTemplateId = value.Id;
         _settings.Save(appSettings);
-        RecordRecentTemplate(value.Id);
 
         RenderNow();
     }
@@ -474,23 +420,6 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    [RelayCommand]
-    private void DeleteTemplate(TemplateManifest? template)
-    {
-        if (template is null || !template.IsCustom || template.SourceDirectory is null)
-            return;
-
-        var jsonPath = Path.Combine(template.SourceDirectory, $"{template.Id}.json");
-        var imagePath = Path.Combine(template.SourceDirectory, template.Image);
-        if (File.Exists(jsonPath)) File.Delete(jsonPath);
-        if (File.Exists(imagePath)) File.Delete(imagePath);
-
-        var wasSelected = SelectedTemplate?.Id == template.Id;
-        LoadTemplates(wasSelected ? null : SelectedTemplate?.Id);
-        ToastMessage = $"Deleted \"{template.Name}\"";
-        ShowToast = true;
-    }
-
     /// <summary>Encodes and writes a rendered bitmap to disk — the View owns the save-file dialog, this owns the actual encode.</summary>
     public void WriteExportFile(SkiaSharp.SKBitmap bitmap, string path, ExportFormat format) => _render.Export(bitmap, path, format);
 
@@ -601,7 +530,6 @@ public partial class MainViewModel : ViewModelBase
     public string ClearAllLabel => Loc.T("Main.ClearAll");
     public string ExportLabel => Loc.T("Main.Export");
     public string SettingsLabel => Loc.T("Main.Settings");
-    public string SearchPlaceholder => Loc.T("Main.SearchTemplates");
     public string DuplicateLabel => Loc.T("Main.Duplicate");
     public string SettingsTitleLabel => Loc.T("Settings.Title");
     public string ThemeLabel => Loc.T("Settings.Theme");

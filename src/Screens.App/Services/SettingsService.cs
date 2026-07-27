@@ -24,8 +24,6 @@ public sealed class AppSettings
     public ThemePreference Theme { get; set; } = ThemePreference.System;
     public AppLanguage Language { get; set; } = AppLanguage.English;
     public string? LastTemplateId { get; set; }
-    /// <summary>Most-recently-used template ids, newest first, capped at 8.</summary>
-    public List<string> RecentTemplateIds { get; set; } = new();
     /// <summary>Per-template field values, so in-progress edits survive an app restart.</summary>
     public Dictionary<string, Dictionary<string, string>> Drafts { get; set; } = new();
     public List<ExportPreset> ExportPresets { get; set; } = new();

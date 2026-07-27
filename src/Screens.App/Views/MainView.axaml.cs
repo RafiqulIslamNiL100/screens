@@ -90,12 +90,6 @@ public partial class MainView : UserControl
         }
     }
 
-    private void OnTemplateTilePressed(object? sender, PointerPressedEventArgs e)
-    {
-        if (sender is Control { Tag: TemplateManifest manifest } && Vm is { } vm)
-            vm.SelectedTemplate = manifest;
-    }
-
     private async void OnChoosePhotoClicked(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { Tag: FieldEditorItemViewModel field })
