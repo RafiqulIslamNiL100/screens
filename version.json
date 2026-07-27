@@ -1,7 +1,7 @@
 {
-  "version": "1.11.1",
-  "notes": "Erase now matches a solid background exactly instead of leaving a tinted or gradient-ramped patch — the fix matters most on documents (CVs, forms, tables) where lines of text sit close together. Sampled text color is also much closer to the real ink on dark text. Field outlines in the preview are now shown only under the cursor, so they no longer look like purple boxes drawn over the artwork.",
-  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.11.1.exe",
-  "sha256": "0c651a125209d880413ae018b7e49f4a5efb9dc933378b440be5b1f8009ed43a",
+  "version": "1.12.0",
+  "notes": "Removed the QR code field type entirely (it wasn't needed) — the QRCoder dependency, the RenderService QR-drawing path, and the one bundled template field that used it are all gone. No other templates used it, so nothing else changes.",
+  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.12.0.exe",
+  "sha256": "d2b091002ad8292b343f13b253e55596ea8df0710a8f5a92db211b9af4f81113",
   "mandatory": false
 }

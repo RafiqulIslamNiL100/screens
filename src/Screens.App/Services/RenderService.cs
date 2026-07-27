@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using SkiaSharp;
 using SkiaSharp.HarfBuzz;
-using QRCoder;
 using Screens.App.Models;
 
 namespace Screens.App.Services;
@@ -36,11 +35,6 @@ public sealed class RenderService
             foreach (var field in manifest.Fields)
             {
                 var text = values.TryGetValue(field.Id, out var v) ? v : field.Default;
-                if (field.Type == "qr")
-                {
-                    DrawQr(canvas, field, text);
-                    continue;
-                }
                 if (field.Type == "image")
                 {
                     DrawImage(canvas, field, text);
@@ -112,28 +106,6 @@ public sealed class RenderService
         using var shadowPaint = new SKPaint { IsAntialias = true, Color = new SKColor(0, 0, 0, 90), TextSize = paint.TextSize, Typeface = paint.Typeface };
         canvas.DrawText(text, x + 1, y + 1, shadowPaint);
         canvas.DrawText(text, x, y, paint);
-    }
-
-    private void DrawQr(SKCanvas canvas, TemplateField field, string content)
-    {
-        var box = new SKRect(
-            (float)field.Box.X, (float)field.Box.Y,
-            (float)(field.Box.X + field.Box.Width), (float)(field.Box.Y + field.Box.Height));
-
-        if (string.IsNullOrWhiteSpace(content))
-            return;
-
-        using var generator = new QRCodeGenerator();
-        using var qrData = generator.CreateQrCode(content, QRCodeGenerator.ECCLevel.M);
-        var pngQr = new PngByteQRCode(qrData);
-        var size = (int)Math.Max(1, Math.Min(box.Width, box.Height));
-        var pngBytes = pngQr.GetGraphic(Math.Max(1, size / 33)); // ~33 modules across a typical QR; pixelsPerModule scales output near the box size
-        using var qrBitmap = SKBitmap.Decode(pngBytes);
-        if (qrBitmap is null)
-            return;
-
-        var dest = new SKRect(box.MidX - size / 2f, box.MidY - size / 2f, box.MidX + size / 2f, box.MidY + size / 2f);
-        canvas.DrawBitmap(qrBitmap, dest);
     }
 
     /// <summary>Draws a user-chosen photo into a field's box with "cover" fit (fills the box,

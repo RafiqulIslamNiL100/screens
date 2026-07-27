@@ -51,7 +51,7 @@ public sealed class FieldFont
 public sealed class TemplateField
 {
     [JsonPropertyName("id")] public string Id { get; set; } = "";
-    /// <summary>"text" (default) or "qr" — a QR code rendered to fill the box instead of drawn text.</summary>
+    /// <summary>"text" (default) or "image" — a user-chosen photo drawn to fill the box instead of text.</summary>
     [JsonPropertyName("type")] public string Type { get; set; } = "text";
     [JsonPropertyName("label")] public string Label { get; set; } = "";
     [JsonPropertyName("default")] public string Default { get; set; } = "";

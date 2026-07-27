@@ -22,11 +22,10 @@ public partial class FieldEditorItemViewModel : ViewModelBase
         _sizeOverride = field.Font.Size;
     }
 
-    public bool IsQr => Field.Type == "qr";
     public bool IsImage => Field.Type == "image";
     public bool HasPhoto => IsImage && !string.IsNullOrEmpty(Value);
-    public bool ShowColorPicker => Field.UserEditableColor && !IsQr && !IsImage;
-    public bool ShowSizePicker => Field.UserEditableSize && !IsQr && !IsImage;
+    public bool ShowColorPicker => Field.UserEditableColor && !IsImage;
+    public bool ShowSizePicker => Field.UserEditableSize && !IsImage;
 
     public int CharacterCount => Value.Length;
     public bool HasMaxLength => Field.MaxLength.HasValue;
@@ -41,7 +40,7 @@ public partial class FieldEditorItemViewModel : ViewModelBase
     {
         get
         {
-            if (IsQr || IsImage || !Field.AutoShrink || Value.Length == 0)
+            if (IsImage || !Field.AutoShrink || Value.Length == 0)
                 return false;
             var approxCharWidth = Field.Font.Size * 0.55;
             var charsPerLine = Math.Max(1, (int)(Field.Box.Width / approxCharWidth));
