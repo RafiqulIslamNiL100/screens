@@ -116,7 +116,8 @@
         <Border Grid.Column="1" Name="CanvasViewport" Background="{DynamicResource BrushSurfaceElevated}" Margin="0" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1,0"
                 PointerWheelChanged="OnCanvasWheelChanged">
           <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-            <LayoutTransformControl Margin="24" IsVisible="{Binding SelectedTemplate, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <LayoutTransformControl Name="CanvasTransform" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                     IsVisible="{Binding SelectedTemplate, Converter={x:Static ObjectConverters.IsNotNull}}">
               <LayoutTransformControl.LayoutTransform>
                 <ScaleTransform ScaleX="{Binding EffectiveZoom}" ScaleY="{Binding EffectiveZoom}"/>
               </LayoutTransformControl.LayoutTransform>

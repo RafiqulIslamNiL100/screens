@@ -37,12 +37,25 @@ public partial class MainView : UserControl
                     if (args.PropertyName == nameof(MainViewModel.SelectedTemplate))
                         RecomputeFitScale();
                 };
+                // The view model already has a SelectedTemplate by the time DataContext is
+                // assigned (LoadTemplates runs in its constructor, at app startup, long before
+                // this view is ever shown) — subscribing above only catches *future* selections.
+                // Without this, "Fit" silently stays stuck at its 1.0 default until something
+                // else happens to trigger a resize, rendering the template at literal 100% (often
+                // much bigger than the viewport) despite the toolbar still reading "Fit".
+                RecomputeFitScale();
             }
         };
 
         var viewport = this.FindControl<Border>("CanvasViewport");
         if (viewport is not null)
+        {
             viewport.SizeChanged += (_, _) => RecomputeFitScale();
+            // Also recompute once the control has its final layout bounds — SizeChanged can be a
+            // no-op if this view was measured while hidden (Screen starts at Splash/Auth) and its
+            // Bounds happen not to change again once it becomes visible.
+            viewport.AttachedToVisualTree += (_, _) => RecomputeFitScale();
+        }
     }
 
     /// <summary>"Fit" tracks whatever the current canvas viewport size is, recomputed whenever
@@ -58,6 +71,14 @@ public partial class MainView : UserControl
         var availHeight = Math.Max(1, viewport.Bounds.Height - margin);
         var scale = Math.Min(availWidth / template.Canvas.Width, availHeight / template.Canvas.Height);
         Vm.SetFitScale(scale);
+
+        // Force a fresh measure/arrange pass so the ScrollViewer's scrollable extent always
+        // matches the just-applied scale, instead of occasionally keeping a stale (larger) extent
+        // from before this recompute — which left dead scrollable space and could leave the view
+        // scrolled to show only a small corner of the template rather than the centered whole.
+        var transform = this.FindControl<Avalonia.Controls.LayoutTransformControl>("CanvasTransform");
+        transform?.InvalidateMeasure();
+        viewport.InvalidateMeasure();
     }
 
     private void OnCanvasWheelChanged(object? sender, PointerWheelEventArgs e)

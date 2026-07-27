@@ -15,26 +15,32 @@
     <conv:EnumEqualsConverter x:Key="EnumEquals"/>
   </Window.Resources>
 
-  <Panel>
-    <views:AuthView DataContext="{Binding AuthViewModel}"
-                     IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).Screen, Converter={StaticResource EnumEquals}, ConverterParameter=Auth}"/>
-
-    <views:ActivationView DataContext="{Binding ActivationViewModel}"
-                           IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).Screen, Converter={StaticResource EnumEquals}, ConverterParameter=Activation}"/>
-
-    <views:MainView DataContext="{Binding MainViewModel}"
-                     IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).Screen, Converter={StaticResource EnumEquals}, ConverterParameter=Main}"/>
-
-    <Border IsVisible="{Binding Screen, Converter={StaticResource EnumEquals}, ConverterParameter=Splash}"
-            Background="{DynamicResource BrushSurface}">
-      <TextBlock Text="Screens" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="28" FontWeight="Bold"/>
-    </Border>
-
-    <Border IsVisible="{Binding ShowOfflineGraceBanner}"
-            VerticalAlignment="Top" HorizontalAlignment="Stretch"
+  <DockPanel LastChildFill="True">
+    <!-- Dock=Top so this reserves its own strip of height instead of floating over whatever's
+         underneath — it used to be a plain overlay in the Panel below, absolutely positioned at
+         the top with no layout awareness of the toolbar starting at y=0 in MainView, so it
+         visually overlapped/collided with it instead of pushing it down. -->
+    <Border DockPanel.Dock="Top" IsVisible="{Binding ShowOfflineGraceBanner}"
+            HorizontalAlignment="Stretch"
             Background="{DynamicResource BrushSurfaceElevated2}" Padding="12,6">
       <TextBlock Text="Working offline — reconnect within 72 hours to keep your license active." Classes="secondary" HorizontalAlignment="Center"/>
     </Border>
-  </Panel>
+
+    <Panel>
+      <views:AuthView DataContext="{Binding AuthViewModel}"
+                       IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).Screen, Converter={StaticResource EnumEquals}, ConverterParameter=Auth}"/>
+
+      <views:ActivationView DataContext="{Binding ActivationViewModel}"
+                             IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).Screen, Converter={StaticResource EnumEquals}, ConverterParameter=Activation}"/>
+
+      <views:MainView DataContext="{Binding MainViewModel}"
+                       IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).Screen, Converter={StaticResource EnumEquals}, ConverterParameter=Main}"/>
+
+      <Border IsVisible="{Binding Screen, Converter={StaticResource EnumEquals}, ConverterParameter=Splash}"
+              Background="{DynamicResource BrushSurface}">
+        <TextBlock Text="Screens" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="28" FontWeight="Bold"/>
+      </Border>
+    </Panel>
+  </DockPanel>
 
 </Window>

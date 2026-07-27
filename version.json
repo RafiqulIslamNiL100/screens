@@ -1,7 +1,7 @@
 {
-  "version": "1.3.2",
-  "notes": "Improve: \"Scan a picture\" now approximates bold vs. regular weight per line (headings/buttons vs. body text) instead of always using regular — a closer visual match on clean UI/design screenshots.",
-  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.3.2.exe",
-  "sha256": "47da16af60ad3150c0bf3f4416591c94c7e4747af84ea5349545c873c9722588",
+  "version": "1.3.3",
+  "notes": "Fix: the offline-license banner overlapped the toolbar instead of pushing it down. Fix: the canvas preview could render at 100% instead of actually fitting the window on first load, leaving the template small and scrolled out of view instead of centered.",
+  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.3.3.exe",
+  "sha256": "fba6812c994ead33c572e7092e9e263aa8eaec7b6186bb4695010d2ab3cfd906",
   "mandatory": false
 }
