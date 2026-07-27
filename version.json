@@ -1,7 +1,7 @@
 {
-  "version": "1.11.0",
-  "notes": "Admins can now publish Premium Templates directly from inside the app (Settings → Publish as Premium Template) — no more exporting a file and hand-committing it to GitHub. The catalog moved to Supabase (Storage + a database table), gated by an admin flag only the project owner can grant. Also added an editable custom watermark text (previously fixed to \"Made with Screens\"), and a scan/build erase-quality fix for text boxes that sit close to a differently colored edge (a card, an icon).",
-  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.11.0.exe",
-  "sha256": "63d757915b0ed14b6b5ae113e7b07e562a728d18007cdc89401a5d39907de228",
+  "version": "1.11.1",
+  "notes": "Erase now matches a solid background exactly instead of leaving a tinted or gradient-ramped patch — the fix matters most on documents (CVs, forms, tables) where lines of text sit close together. Sampled text color is also much closer to the real ink on dark text. Field outlines in the preview are now shown only under the cursor, so they no longer look like purple boxes drawn over the artwork.",
+  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.11.1.exe",
+  "sha256": "0c651a125209d880413ae018b7e49f4a5efb9dc933378b440be5b1f8009ed43a",
   "mandatory": false
 }

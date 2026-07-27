@@ -50,9 +50,23 @@ public static class PhotoRegionEraser
         if (textPixels.Count == 0)
             return ("#1A1028", 0.0);
 
-        var r = (byte)textPixels.Average(s => s.r);
-        var g = (byte)textPixels.Average(s => s.g);
-        var b = (byte)textPixels.Average(s => s.b);
+        // The glyph *core* is what the text color actually is; the rest of that cluster is mostly
+        // antialiased fringe halfway between the glyph and the paper. Averaging the whole cluster
+        // therefore reports something far lighter than the real ink — near-black CV text came back
+        // as mid-grey — so take only the quarter of the cluster furthest from the background and
+        // average that. InkRatio still counts the whole cluster, since it's a stroke-weight proxy
+        // (bold vs. regular, relative to other lines in the same image) and shrinking the sample
+        // there would change bold detection rather than improve it.
+        var isDarkText = ReferenceEquals(textPixels, darker);
+        var ordered = isDarkText
+            ? textPixels.OrderBy(s => s.luma).ToList()
+            : textPixels.OrderByDescending(s => s.luma).ToList();
+        var coreCount = Math.Max(1, ordered.Count / 4);
+        var core = ordered.Take(coreCount).ToList();
+
+        var r = (byte)core.Average(s => s.r);
+        var g = (byte)core.Average(s => s.g);
+        var b = (byte)core.Average(s => s.b);
         var inkRatio = (double)textPixels.Count / samples.Count;
         return ($"#{r:X2}{g:X2}{b:X2}", inkRatio);
     }
@@ -67,24 +81,43 @@ public static class PhotoRegionEraser
     /// two-stop gradient can't approximate a texture — that limitation is unchanged.</summary>
     public static void Erase(SKBitmap bitmap, SKRectI box)
     {
-        var top = SampleEdge(bitmap, box, top: true, left: false);
-        var bottom = SampleEdge(bitmap, box, top: false, left: false);
-        var left = SampleEdge(bitmap, box, top: false, left: true, vertical: false);
-        var right = SampleEdge(bitmap, box, top: false, left: false, vertical: false);
+        var topSamples = SampleEdge(bitmap, box, top: true, left: false);
+        var bottomSamples = SampleEdge(bitmap, box, top: false, left: false);
+        var leftSamples = SampleEdge(bitmap, box, top: false, left: true, vertical: false);
+        var rightSamples = SampleEdge(bitmap, box, top: false, left: false, vertical: false);
+
+        var top = Median(topSamples);
+        var bottom = Median(bottomSamples);
+        var left = Median(leftSamples);
+        var right = Median(rightSamples);
 
         using var canvas = new SKCanvas(bitmap);
         var rect = new SKRect(box.Left, box.Top, box.Right, box.Bottom);
 
         var verticalDiff = ColorDistance(top, bottom);
         var horizontalDiff = ColorDistance(left, right);
-        const double gradientThreshold = 10.0; // below this, the two edges are "the same color" (flat background)
+        // Below this, the two edges count as "the same color" and get a flat fill. Deliberately not
+        // sensitive: fitting a two-stop ramp to a difference this small is fitting to noise, and a
+        // wrong *gradient* on a solid background (a visible ramp across the patch) looks far worse
+        // than a flat fill that's a unit or two off. A genuine gradient background clears this
+        // easily wherever it matters — over a short box the real gradient barely changes at all, so
+        // the flat fill is the more accurate answer there regardless.
+        const double gradientThreshold = 18.0;
 
         using var paint = new SKPaint { IsAntialias = false };
         if (verticalDiff < gradientThreshold && horizontalDiff < gradientThreshold)
         {
-            // Flat background (or too subtle a gradient to bother matching): one averaged color,
-            // the original behavior.
-            paint.Color = Average(top, bottom, left, right);
+            // Flat background: fill with the median of every surrounding sample pooled together,
+            // not the average of the four edge colors. On a flat background the pooled median is
+            // *exactly* the background color (255,255,255 on a white document, say) rather than an
+            // arithmetic blend that lands a few units off it — which on a large flat area of solid
+            // color is exactly where a slightly-wrong fill is most visible.
+            var pooled = new List<SKColor>(topSamples.Count + bottomSamples.Count + leftSamples.Count + rightSamples.Count);
+            pooled.AddRange(topSamples);
+            pooled.AddRange(bottomSamples);
+            pooled.AddRange(leftSamples);
+            pooled.AddRange(rightSamples);
+            paint.Color = Median(pooled);
         }
         else if (verticalDiff >= horizontalDiff)
         {
@@ -102,14 +135,21 @@ public static class PhotoRegionEraser
         canvas.DrawRect(rect, paint);
     }
 
-    /// <summary>Median color along one edge of the box, sampled from a band just outside it (6-30px
-    /// out, not a single thin line) so a small amount of noise/texture in the surrounding art gets
-    /// smoothed out rather than picking one unlucky pixel. Rings are sampled nearest-first and
-    /// anchored against the closest ring's own average: a farther ring gets folded in only if it's
-    /// still close in color to that anchor, so crossing a container edge just outside the box (a
-    /// card, a button, a photo frame — anything whose boundary sits within the 30px band) discards
-    /// the far side instead of blending it in and leaving a mismatched patch.</summary>
-    private static SKColor SampleEdge(SKBitmap bitmap, SKRectI box, bool top, bool left, bool vertical = true)
+    /// <summary>Background samples along one edge of the box, taken from a band just outside it
+    /// (6-30px out, not a single thin line) so a small amount of noise/texture in the surrounding
+    /// art gets smoothed out rather than picking one unlucky pixel. Rings are sampled nearest-first
+    /// and anchored against the closest ring's own median: a farther ring gets folded in only if
+    /// it's still close in color to that anchor, so crossing a container edge just outside the box
+    /// (a card, a button, a photo frame — anything whose boundary sits within the 30px band)
+    /// discards the far side instead of blending it in and leaving a mismatched patch.
+    ///
+    /// Returns the raw accepted samples rather than one color, so the caller can pool every edge's
+    /// samples before taking a single median — see <see cref="Erase"/>. Everything downstream
+    /// summarises these with a *median*, never a mean: on a dense document (a CV, a form, a table)
+    /// these bands routinely land on the neighboring lines of text, and averaging white paper
+    /// together with black glyph pixels produced a grey fill on a white page. A median ignores the
+    /// minority glyph pixels entirely and returns the paper color itself.</summary>
+    private static List<SKColor> SampleEdge(SKBitmap bitmap, SKRectI box, bool top, bool left, bool vertical = true)
     {
         var ringOffsets = new[] { 6, 14, 22, 30 };
         var rings = new List<SKColor>[ringOffsets.Length];
@@ -139,20 +179,42 @@ public static class PhotoRegionEraser
 
         var anchor = rings.FirstOrDefault(r => r.Count > 0);
         if (anchor is null || anchor.Count == 0)
-            return SKColors.White;
-        var anchorColor = Average(anchor.ToArray());
+            return new List<SKColor> { SKColors.White };
+        var anchorColor = Median(anchor);
 
         const double maxRingDrift = 45.0; // beyond this, a farther ring is "a different surface", not noise
         var accepted = new List<SKColor>();
         foreach (var ring in rings)
         {
             if (ring.Count == 0) continue;
-            var ringColor = Average(ring.ToArray());
-            if (ColorDistance(ringColor, anchorColor) <= maxRingDrift)
+            if (ColorDistance(Median(ring), anchorColor) <= maxRingDrift)
                 accepted.AddRange(ring);
         }
 
-        return Average(accepted.ToArray());
+        return accepted.Count > 0 ? accepted : anchor;
+    }
+
+    /// <summary>Per-channel median — the background color of a sampled band, robust to the
+    /// minority of pixels in it that are actually foreground (glyphs of a neighboring line of
+    /// text, a rule, an icon). A mean would be dragged toward those; a median discards them.</summary>
+    private static SKColor Median(IReadOnlyList<SKColor> colors)
+    {
+        if (colors.Count == 0)
+            return SKColors.White;
+
+        static byte MedianOf(IReadOnlyList<SKColor> src, Func<SKColor, byte> channel)
+        {
+            var values = new byte[src.Count];
+            for (var i = 0; i < src.Count; i++)
+                values[i] = channel(src[i]);
+            Array.Sort(values);
+            return values[values.Length / 2];
+        }
+
+        return new SKColor(
+            MedianOf(colors, c => c.Red),
+            MedianOf(colors, c => c.Green),
+            MedianOf(colors, c => c.Blue));
     }
 
     private static double ColorDistance(SKColor a, SKColor b)
@@ -163,8 +225,4 @@ public static class PhotoRegionEraser
         return Math.Sqrt(dr * dr + dg * dg + db * db);
     }
 
-    private static SKColor Average(params SKColor[] colors) => new(
-        (byte)colors.Average(c => c.Red),
-        (byte)colors.Average(c => c.Green),
-        (byte)colors.Average(c => c.Blue));
 }

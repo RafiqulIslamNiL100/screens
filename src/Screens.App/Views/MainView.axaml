@@ -107,11 +107,22 @@
                   </ItemsControl.ItemsPanel>
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:FieldEditorItemViewModel">
+                      <!-- Invisible until hovered. These outlines exist only to show where a field
+                           can be grabbed and dragged; drawing all of them permanently covered the
+                           preview in purple rectangles that read as part of the artwork (they are
+                           not — they have never been included in an export). Hover still reveals
+                           the one under the cursor, so drag-to-reposition stays discoverable. -->
                       <Border Canvas.Left="{Binding Field.Box.X}" Canvas.Top="{Binding Field.Box.Y}"
                               Width="{Binding Field.Box.Width}" Height="{Binding Field.Box.Height}"
-                              Background="Transparent" BorderBrush="#557C3AED" BorderThickness="1" CornerRadius="2"
+                              Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="2"
                               Cursor="SizeAll" Tag="{Binding}"
-                              PointerPressed="OnFieldDragStart" PointerMoved="OnFieldDragMove" PointerReleased="OnFieldDragEnd"/>
+                              PointerPressed="OnFieldDragStart" PointerMoved="OnFieldDragMove" PointerReleased="OnFieldDragEnd">
+                        <Border.Styles>
+                          <Style Selector="Border:pointerover">
+                            <Setter Property="BorderBrush" Value="#557C3AED"/>
+                          </Style>
+                        </Border.Styles>
+                      </Border>
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
