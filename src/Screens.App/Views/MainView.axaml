@@ -246,6 +246,11 @@
                       <TextBlock Grid.Column="0" Text="Size" Classes="muted" VerticalAlignment="Center" Margin="0,0,8,0"/>
                       <Slider Grid.Column="1" Minimum="8" Maximum="200" Value="{Binding SizeOverride, Mode=TwoWay}"/>
                     </Grid>
+                    <Grid ColumnDefinitions="Auto,*,Auto" IsVisible="{Binding ShowFontPicker}" Margin="0,4,0,0">
+                      <TextBlock Grid.Column="0" Text="Font" Classes="muted" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                      <ComboBox Grid.Column="1" ItemsSource="{Binding FontFamilyOptions}" SelectedItem="{Binding FamilyOverride, Mode=TwoWay}" HorizontalAlignment="Stretch"/>
+                      <CheckBox Grid.Column="2" Content="Bold" IsChecked="{Binding IsBold, Mode=TwoWay}" Margin="8,0,0,0"/>
+                    </Grid>
                   </StackPanel>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>

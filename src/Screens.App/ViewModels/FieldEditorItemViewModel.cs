@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Screens.App.Models;
+using Screens.App.Services;
 
 namespace Screens.App.ViewModels;
 
@@ -11,6 +13,8 @@ public partial class FieldEditorItemViewModel : ViewModelBase
     [ObservableProperty] private string _value;
     [ObservableProperty] private string _colorOverride;
     [ObservableProperty] private double _sizeOverride;
+    [ObservableProperty] private string _familyOverride;
+    [ObservableProperty] private bool _isBold;
 
     public event EventHandler? ValueChanged;
 
@@ -20,12 +24,16 @@ public partial class FieldEditorItemViewModel : ViewModelBase
         _value = field.Default;
         _colorOverride = field.Color;
         _sizeOverride = field.Font.Size;
+        _familyOverride = field.Font.Family;
+        _isBold = field.Font.Weight.Equals("Bold", StringComparison.OrdinalIgnoreCase);
     }
 
     public bool IsImage => Field.Type == "image";
     public bool HasPhoto => IsImage && !string.IsNullOrEmpty(Value);
     public bool ShowColorPicker => Field.UserEditableColor && !IsImage;
     public bool ShowSizePicker => Field.UserEditableSize && !IsImage;
+    public bool ShowFontPicker => Field.UserEditableFont && !IsImage;
+    public IReadOnlyList<string> FontFamilyOptions => FontRegistry.AvailableFamilies;
 
     public int CharacterCount => Value.Length;
     public bool HasMaxLength => Field.MaxLength.HasValue;
@@ -79,11 +87,25 @@ public partial class FieldEditorItemViewModel : ViewModelBase
         ValueChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    partial void OnFamilyOverrideChanged(string value)
+    {
+        Field.RuntimeFamilyOverride = string.IsNullOrWhiteSpace(value) ? null : value;
+        ValueChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    partial void OnIsBoldChanged(bool value)
+    {
+        Field.RuntimeWeightOverride = value ? "Bold" : "Regular";
+        ValueChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     public void Reset()
     {
         Value = Field.Default;
         ColorOverride = Field.Color;
         SizeOverride = Field.Font.Size;
+        FamilyOverride = Field.Font.Family;
+        IsBold = Field.Font.Weight.Equals("Bold", StringComparison.OrdinalIgnoreCase);
     }
 
     public void Clear()

@@ -69,11 +69,22 @@ public sealed class TemplateField
     [JsonPropertyName("autoShrink")] public bool AutoShrink { get; set; } = true;
     [JsonPropertyName("userEditableColor")] public bool UserEditableColor { get; set; }
     [JsonPropertyName("userEditableSize")] public bool UserEditableSize { get; set; }
+    /// <summary>Unlike UserEditableColor/Size (which default to locked, and only the handful of
+    /// fields that explicitly opt in show a picker), this defaults to *unlocked* — every existing
+    /// template's manifest JSON predates this property, so a missing key here means "on," letting
+    /// the font-family/bold picker light up across already-shipped templates without editing a
+    /// single one of them. Premium Templates still force this false at load time exactly like the
+    /// other two (see TemplateService.LoadFrom), so an admin's font choice still ships locked
+    /// there — this default only affects everything else.</summary>
+    [JsonPropertyName("userEditableFont")] public bool UserEditableFont { get; set; } = true;
     [JsonPropertyName("opacity")] public double Opacity { get; set; } = 1.0;
     [JsonPropertyName("shadow")] public bool Shadow { get; set; }
 
-    /// <summary>Runtime-only overrides (drag-to-reposition, per-field color/size pickers). Never
-    /// written back to the manifest file — these reset when the app restarts or the template reloads.</summary>
+    /// <summary>Runtime-only overrides (drag-to-reposition, per-field color/size/font pickers).
+    /// Never written back to the manifest file — these reset when the app restarts or the
+    /// template reloads.</summary>
     [JsonIgnore] public string? RuntimeColorOverride { get; set; }
     [JsonIgnore] public double? RuntimeSizeOverride { get; set; }
+    [JsonIgnore] public string? RuntimeFamilyOverride { get; set; }
+    [JsonIgnore] public string? RuntimeWeightOverride { get; set; }
 }

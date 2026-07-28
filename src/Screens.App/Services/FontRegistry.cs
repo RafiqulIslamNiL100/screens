@@ -19,6 +19,14 @@ public sealed class FontRegistry
     private SKTypeface? _fallback;
     private SKTypeface? _bengali;
 
+    /// <summary>The bundled Latin font families a user can pick between for a field's text —
+    /// deliberately just the families with real files in FileMap (never a raw list of every family
+    /// name a template's JSON might mention), so a choice made here always resolves to a real
+    /// typeface instead of silently falling back. Bengali text ignores this entirely and always
+    /// renders in the bundled Bengali face regardless of what's picked here — see ContainsBengali/
+    /// ResolveBengali — since none of these three carry Bengali glyphs at all.</summary>
+    public static readonly IReadOnlyList<string> AvailableFamilies = new[] { "Inter", "Playfair Display", "Cabin" };
+
     private static readonly Dictionary<string, string> FileMap = new(StringComparer.OrdinalIgnoreCase)
     {
         ["Inter|Regular|false"] = "Inter-Regular.ttf",

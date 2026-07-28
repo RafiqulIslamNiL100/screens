@@ -162,15 +162,21 @@ public sealed class RenderService
         var alpha = (byte)(Math.Clamp(field.Opacity, 0.0, 1.0) * 255);
         color = color.WithAlpha(alpha);
 
+        var family = field.RuntimeFamilyOverride ?? field.Font.Family;
+        var weight = field.RuntimeWeightOverride ?? field.Font.Weight;
+        var isBold = weight.Equals("Bold", StringComparison.OrdinalIgnoreCase);
+
         // None of the bundled Latin fonts carry Bengali glyphs, so Bengali text always renders
         // through the bundled Bengali face instead — regardless of what family the field/template
-        // specifies — shaped via HarfBuzz so conjuncts and matras (vowel signs that reorder around
-        // the consonant, e.g. রি) draw correctly instead of as separate, wrongly-positioned glyphs.
-        // Latin/other text takes the exact same path it always has (plain SKPaint.DrawText).
+        // specifies (a user's font-family pick included, since a picked Latin family still can't
+        // draw these glyphs) — shaped via HarfBuzz so conjuncts and matras (vowel signs that
+        // reorder around the consonant, e.g. রি) draw correctly instead of as separate,
+        // wrongly-positioned glyphs. Latin/other text takes the exact same path it always has
+        // (plain SKPaint.DrawText), now against whichever bundled family was picked.
         var isBengali = FontRegistry.ContainsBengali(text);
         var typeface = isBengali
             ? _fonts.ResolveBengali()
-            : _fonts.Resolve(field.Font.Family, field.Font.Weight, field.Font.Italic);
+            : _fonts.Resolve(family, weight, field.Font.Italic);
         using var shaper = isBengali ? new SKShaper(typeface) : null;
 
         using var paint = new SKPaint
@@ -181,7 +187,7 @@ public sealed class RenderService
             TextAlign = SKTextAlign.Left,
             // There's only one bundled Bengali weight (see FontRegistry.ResolveBengali), so
             // "Bold" is approximated with synthetic emboldening rather than a second font file.
-            FakeBoldText = isBengali && field.Font.Weight.Equals("Bold", StringComparison.OrdinalIgnoreCase),
+            FakeBoldText = isBengali && isBold,
         };
 
         float MeasureWidth(string s) => shaper is not null ? shaper.Shape(s, paint).Width : paint.MeasureText(s);

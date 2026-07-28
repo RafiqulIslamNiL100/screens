@@ -70,6 +70,7 @@ public sealed class TemplateService
                     {
                         field.UserEditableColor = false;
                         field.UserEditableSize = false;
+                        field.UserEditableFont = false;
                     }
                 }
                 result.Add(manifest);
