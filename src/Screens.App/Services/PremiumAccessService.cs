@@ -126,6 +126,17 @@ public sealed class PremiumAccessService
         }
     }
 
+    /// <summary>Clears in-memory and cached-on-disk premium-access state and notifies
+    /// subscribers — called on sign-out so a different account signing in next never briefly
+    /// inherits this account's unlock status. The signed-out account's key stays redeemed
+    /// server-side (assigned_user is permanent); this only clears what's cached on this machine.</summary>
+    public async Task ResetAsync()
+    {
+        State = new PremiumAccessState();
+        await _settings.ClearPremiumAccessCacheAsync();
+        StateChanged?.Invoke(State);
+    }
+
     private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
 }
 

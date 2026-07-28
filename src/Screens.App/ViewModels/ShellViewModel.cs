@@ -104,6 +104,12 @@ public partial class ShellViewModel : ViewModelBase
     public async void SignOut()
     {
         await _auth.SignOutAsync();
+        // Clears this machine's cached activation/premium-access status so the next sign-in
+        // (possibly a different account, on a shared computer) starts from a clean slate instead
+        // of briefly showing whoever was signed in before — each account's own key stays
+        // permanently redeemed server-side regardless; this only clears the local cache of it.
+        await _license.ResetAsync();
+        await _premiumAccess.ResetAsync();
         Screen = ShellScreen.Auth;
     }
 }

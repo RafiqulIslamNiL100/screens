@@ -155,6 +155,18 @@ public sealed class LicenseService : IDisposable
         }
     }
 
+    /// <summary>Clears in-memory and cached-on-disk license state and notifies subscribers —
+    /// called on sign-out so a different account signing in next never briefly inherits this
+    /// account's activation status. The signed-out account's key stays redeemed server-side
+    /// (assigned_user is permanent); this only clears what's cached on this machine.</summary>
+    public async Task ResetAsync()
+    {
+        State = new LicenseState();
+        InOfflineGrace = false;
+        await _settings.ClearLicenseCacheAsync();
+        StateChanged?.Invoke(State);
+    }
+
     public void Dispose() => _timer?.Dispose();
 
     private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };

@@ -1,7 +1,7 @@
 {
-  "version": "1.13.0",
-  "notes": "Users can now pick a font family (Inter / Playfair Display / Cabin) and toggle Bold per text field, in most templates by default. While building this, found and fixed a real pre-existing bug: the bundled \"Bold\" font files were byte-for-byte identical copies of the Regular ones since the app's very first release, so Bold text has never actually rendered bold anywhere in the app until now. Regenerated genuine bold weights from the bundled variable fonts' own weight axis.",
-  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.13.0.exe",
-  "sha256": "3f9dc3996cf752d80abee49471a881044161f50d9dee9105d84ca3328887aaf3",
+  "version": "1.13.1",
+  "notes": "Sign-out now clears this machine's cached license/Premium Templates status, so a different account signing in next (on a shared computer) never briefly inherits the previous account's unlock state. Doesn't change how Premium Templates access itself works: redeeming a key still ties it permanently to your account (not this device or a local file), so it will never ask for the key again on any future launch or device once redeemed — that was already the case, this closes a related edge case found while verifying it.",
+  "url": "https://github.com/RafiqulIslamNiL100/screens-fnl-app/raw/main/Screens-Setup-1.13.1.exe",
+  "sha256": "acf875ebbf8ece01bff020cd94d9d1024f6e7cbe75e00a98a3cebc0bada65c5f",
   "mandatory": false
 }

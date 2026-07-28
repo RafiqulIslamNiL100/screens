@@ -116,6 +116,28 @@ public sealed class SettingsService
         return Task.CompletedTask;
     }
 
+    /// <summary>Deletes the cached license state file (not the session — that's
+    /// ClearSessionAsync's job). Called on sign-out so the *next* sign-in never briefly shows the
+    /// previous account's activation status before its own RefreshAsync call corrects it — on this
+    /// shared, per-machine app-data folder, that stale read would otherwise happen every time a
+    /// different Screens account signs in on the same computer, and would show entirely wrong
+    /// status for as long as the network happened to be down.</summary>
+    public Task ClearLicenseCacheAsync()
+    {
+        if (File.Exists(_licensePath))
+            File.Delete(_licensePath);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Same as <see cref="ClearLicenseCacheAsync"/>, for the separate premium_templates
+    /// unlock cache.</summary>
+    public Task ClearPremiumAccessCacheAsync()
+    {
+        if (File.Exists(_premiumAccessPath))
+            File.Delete(_premiumAccessPath);
+        return Task.CompletedTask;
+    }
+
     public async Task SaveLicenseStateAsync(LicenseState state) =>
         await File.WriteAllTextAsync(_licensePath, JsonSerializer.Serialize(state));
 
